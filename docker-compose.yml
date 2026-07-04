@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: shinhon-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shinhon
+      POSTGRES_PASSWORD: shinhon
+      POSTGRES_DB: shinhon
+      TZ: Asia/Seoul
+      PGTZ: Asia/Seoul
+    ports:
+      - "5433:5432"
+    volumes:
+      - shinhon_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shinhon -d shinhon"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  shinhon_pgdata:
+    name: shinhon_pgdata

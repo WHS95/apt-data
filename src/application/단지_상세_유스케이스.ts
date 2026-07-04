@@ -1,0 +1,311 @@
+import { and, asc, eq, gte, ilike, sql } from "drizzle-orm";
+import { DB } from "../infrastructure/persistence/접속";
+import {
+  시군구_테이블,
+  시도_테이블,
+  실거래_테이블,
+} from "../infrastructure/persistence/스키마";
+import { 면적_구간 } from "../domain/공통/코드";
+import type { 면적_구간_코드 } from "../domain/공통/코드";
+
+export interface 단지_상세_옵션 {
+  시군구_코드: string;
+  단지명: string;
+  거래_유형?: "1" | "2" | "전체";
+  면적_구간?: 면적_구간_코드 | "전체";
+  직거래_제외?: boolean;
+  이상치_제외?: boolean;
+}
+
+export interface 단지_거래_레코드 {
+  계약_일자: string;
+  거래_유형: string;
+  전용_면적_제곱미터: number;
+  층: number | null;
+  거래_금액_만원: number | null;
+  보증금_만원: number | null;
+  월세_만원: number | null;
+  거래_경위: string | null;
+  이상치_의심: boolean;
+  의심_사유: string | null;
+}
+
+export interface 단지_상세_결과 {
+  메타: {
+    단지명: string;
+    시도명: string;
+    시군구명: string;
+    건축_연도: number | null;
+    평형_옵션: Array<{ 코드: 면적_구간_코드; 라벨: string; 거래수: number }>;
+    최근_매매: { 평균_만원: number | null; 건수: number };
+    최근_전세: { 평균_만원: number | null; 건수: number };
+    역대_최고가_만원: number | null;
+    역대_최고가_월: string | null;
+    전세가율: number | null;
+    경위_분포: Record<string, number>; // 중개거래 N, 직거래 M, ...
+    이상치_건수: number;
+  };
+  월별_평균: Array<{
+    년월: string;
+    매매_평균: number | null;
+    전세_평균: number | null;
+    매매_건수: number;
+    전세_건수: number;
+  }>;
+  거래들: 단지_거래_레코드[];
+}
+
+const 일자_뒤로 = (기준: Date, 일수: number): string => {
+  const d = new Date(기준);
+  d.setDate(d.getDate() - 일수);
+  return d.toISOString().slice(0, 10);
+};
+
+export class 단지_상세_유스케이스 {
+  async 실행(옵션: 단지_상세_옵션): Promise<단지_상세_결과 | null> {
+    const 오늘 = new Date();
+    const T_60개월 = 일자_뒤로(오늘, 60 * 30);
+    const T_30 = 일자_뒤로(오늘, 30);
+
+    const 절들 = [
+      eq(실거래_테이블.시군구_코드, 옵션.시군구_코드),
+      ilike(실거래_테이블.단지명, 옵션.단지명),
+      eq(실거래_테이블.해제_여부, false),
+      gte(실거래_테이블.계약_일자, T_60개월),
+    ];
+
+    if (옵션.면적_구간 && 옵션.면적_구간 !== "전체") {
+      const 구간 = 면적_구간[옵션.면적_구간];
+      절들.push(gte(실거래_테이블.전용_면적_제곱미터, 구간.최소));
+      if (Number.isFinite(구간.최대)) {
+        절들.push(sql`${실거래_테이블.전용_면적_제곱미터} <= ${구간.최대}`);
+      }
+    }
+    if (옵션.거래_유형 === "1" || 옵션.거래_유형 === "2") {
+      절들.push(eq(실거래_테이블.거래_유형, 옵션.거래_유형));
+    }
+
+    if (옵션.직거래_제외) {
+      절들.push(sql`(${실거래_테이블.거래_경위} IS NULL OR ${실거래_테이블.거래_경위} <> '직거래')`);
+    }
+
+    const 행들_원본 = await DB.select({
+      계약_일자: 실거래_테이블.계약_일자,
+      거래_유형: 실거래_테이블.거래_유형,
+      전용_면적_제곱미터: 실거래_테이블.전용_면적_제곱미터,
+      층: 실거래_테이블.층,
+      거래_금액_만원: 실거래_테이블.거래_금액_만원,
+      보증금_만원: 실거래_테이블.보증금_만원,
+      월세_만원: 실거래_테이블.월세_만원,
+      거래_경위: 실거래_테이블.거래_경위,
+    })
+      .from(실거래_테이블)
+      .where(and(...절들))
+      .orderBy(asc(실거래_테이블.계약_일자));
+
+    if (행들_원본.length === 0) return null;
+
+    // 이상치 감지 — 같은 평형 구간 + 같은 거래유형 그룹 내 평균 대비 ±35% 벗어남
+    const 그룹_가격 = new Map<string, number[]>();
+    for (const r of 행들_원본) {
+      const 가격 = r.거래_유형 === "1" ? r.거래_금액_만원 : r.보증금_만원;
+      if (!가격) continue;
+      const 구간 =
+        r.전용_면적_제곱미터 <= 60 ? "1" :
+        r.전용_면적_제곱미터 <= 85 ? "2" :
+        r.전용_면적_제곱미터 <= 102 ? "3" :
+        r.전용_면적_제곱미터 <= 135 ? "4" : "5";
+      const 키 = `${r.거래_유형}_${구간}`;
+      if (!그룹_가격.has(키)) 그룹_가격.set(키, []);
+      그룹_가격.get(키)!.push(가격);
+    }
+    const 그룹_중위 = new Map<string, number>();
+    for (const [k, v] of 그룹_가격.entries()) {
+      const 정렬 = [...v].sort((a, b) => a - b);
+      그룹_중위.set(k, 정렬[Math.floor(정렬.length / 2)]);
+    }
+
+    const 거래들: 단지_거래_레코드[] = 행들_원본.map((r) => {
+      const 가격 = r.거래_유형 === "1" ? r.거래_금액_만원 : r.보증금_만원;
+      const 구간 =
+        r.전용_면적_제곱미터 <= 60 ? "1" :
+        r.전용_면적_제곱미터 <= 85 ? "2" :
+        r.전용_면적_제곱미터 <= 102 ? "3" :
+        r.전용_면적_제곱미터 <= 135 ? "4" : "5";
+      const 중위 = 그룹_중위.get(`${r.거래_유형}_${구간}`);
+      let 이상치 = false;
+      let 사유: string | null = null;
+      if (가격 && 중위 && 그룹_가격.get(`${r.거래_유형}_${구간}`)!.length >= 5) {
+        const 편차 = (가격 - 중위) / 중위;
+        if (편차 <= -0.35) {
+          이상치 = true;
+          사유 = `평형 중위가 대비 ${(편차 * 100).toFixed(0)}% — 가족 간 거래·증여 의심`;
+        } else if (편차 >= 0.5) {
+          이상치 = true;
+          사유 = `평형 중위가 대비 +${(편차 * 100).toFixed(0)}% — 신고가 이상 거래`;
+        }
+      }
+      if (r.거래_경위 === "직거래") {
+        이상치 = true;
+        사유 = 사유 ?? "직거래 (중개사 미경유)";
+      }
+      return {
+        계약_일자: r.계약_일자,
+        거래_유형: r.거래_유형,
+        전용_면적_제곱미터: r.전용_면적_제곱미터,
+        층: r.층,
+        거래_금액_만원: r.거래_금액_만원,
+        보증금_만원: r.보증금_만원,
+        월세_만원: r.월세_만원,
+        거래_경위: r.거래_경위 ?? null,
+        이상치_의심: 이상치,
+        의심_사유: 사유,
+      };
+    });
+
+    // 경위 분포 집계
+    const 경위_분포: Record<string, number> = {};
+    let 이상치_건수 = 0;
+    for (const t of 거래들) {
+      const k = t.거래_경위 ?? "미상";
+      경위_분포[k] = (경위_분포[k] ?? 0) + 1;
+      if (t.이상치_의심) 이상치_건수++;
+    }
+
+    // 메타
+    const 메타_쿼리 = await DB.select({
+      건축_연도: sql<number>`max(${실거래_테이블.건축_연도})::int`,
+      시도명: 시도_테이블.이름,
+      시군구명: 시군구_테이블.이름,
+    })
+      .from(실거래_테이블)
+      .leftJoin(시군구_테이블, eq(시군구_테이블.코드, 실거래_테이블.시군구_코드))
+      .leftJoin(시도_테이블, eq(시도_테이블.코드, 실거래_테이블.시도_코드))
+      .where(
+        and(
+          eq(실거래_테이블.시군구_코드, 옵션.시군구_코드),
+          ilike(실거래_테이블.단지명, 옵션.단지명),
+        ),
+      )
+      .groupBy(시도_테이블.이름, 시군구_테이블.이름)
+      .limit(1);
+    const 메타_행 = 메타_쿼리[0];
+
+    // 평형 옵션
+    const 평형_원본 = await DB.select({
+      면적: 실거래_테이블.전용_면적_제곱미터,
+      거래수: sql<number>`count(*)::int`,
+    })
+      .from(실거래_테이블)
+      .where(
+        and(
+          eq(실거래_테이블.시군구_코드, 옵션.시군구_코드),
+          ilike(실거래_테이블.단지명, 옵션.단지명),
+          eq(실거래_테이블.해제_여부, false),
+        ),
+      )
+      .groupBy(실거래_테이블.전용_면적_제곱미터);
+
+    const 평형_맵 = new Map<면적_구간_코드, number>();
+    for (const r of 평형_원본) {
+      const 코드: 면적_구간_코드 =
+        r.면적 <= 60 ? "1" :
+        r.면적 <= 85 ? "2" :
+        r.면적 <= 102 ? "3" :
+        r.면적 <= 135 ? "4" : "5";
+      평형_맵.set(코드, (평형_맵.get(코드) ?? 0) + r.거래수);
+    }
+    const 평형_옵션 = Array.from(평형_맵.entries())
+      .map(([코드, 거래수]) => ({
+        코드,
+        라벨: 면적_구간[코드].라벨,
+        거래수,
+      }))
+      .sort((a, b) => Number(a.코드) - Number(b.코드));
+
+    // 월별 평균 (매매, 전세 분리)
+    const 월별_맵 = new Map<
+      string,
+      { 매매: number[]; 전세: number[] }
+    >();
+    for (const t of 거래들) {
+      const 키 = t.계약_일자.slice(0, 7);
+      if (!월별_맵.has(키)) 월별_맵.set(키, { 매매: [], 전세: [] });
+      if (t.거래_유형 === "1" && t.거래_금액_만원) {
+        월별_맵.get(키)!.매매.push(t.거래_금액_만원);
+      } else if (t.거래_유형 === "2" && t.보증금_만원) {
+        월별_맵.get(키)!.전세.push(t.보증금_만원);
+      }
+    }
+    const 월별_평균 = Array.from(월별_맵.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([년월, v]) => ({
+        년월,
+        매매_평균:
+          v.매매.length > 0
+            ? Math.round(v.매매.reduce((a, b) => a + b, 0) / v.매매.length)
+            : null,
+        전세_평균:
+          v.전세.length > 0
+            ? Math.round(v.전세.reduce((a, b) => a + b, 0) / v.전세.length)
+            : null,
+        매매_건수: v.매매.length,
+        전세_건수: v.전세.length,
+      }));
+
+    // 최근 1개월
+    const 최근_매매_값 = 거래들
+      .filter((t) => t.거래_유형 === "1" && t.계약_일자 >= T_30 && t.거래_금액_만원)
+      .map((t) => t.거래_금액_만원!);
+    const 최근_전세_값 = 거래들
+      .filter((t) => t.거래_유형 === "2" && t.계약_일자 >= T_30 && t.보증금_만원)
+      .map((t) => t.보증금_만원!);
+
+    // 역대 최고가
+    const 최고가_거래 = 거래들
+      .filter((t) => t.거래_유형 === "1" && t.거래_금액_만원)
+      .reduce<단지_거래_레코드 | null>(
+        (a, b) => (!a || (b.거래_금액_만원! > a.거래_금액_만원!) ? b : a),
+        null,
+      );
+
+    // 최근 매매·전세 평균으로 전세가율
+    const 매매_avg =
+      최근_매매_값.length > 0
+        ? Math.round(
+            최근_매매_값.reduce((a, b) => a + b, 0) / 최근_매매_값.length,
+          )
+        : null;
+    const 전세_avg =
+      최근_전세_값.length > 0
+        ? Math.round(
+            최근_전세_값.reduce((a, b) => a + b, 0) / 최근_전세_값.length,
+          )
+        : null;
+    const 전세가율 =
+      매매_avg && 전세_avg
+        ? Math.round((전세_avg / 매매_avg) * 1000) / 10
+        : null;
+
+    return {
+      메타: {
+        단지명: 옵션.단지명,
+        시도명: 메타_행?.시도명 ?? "",
+        시군구명: 메타_행?.시군구명 ?? 옵션.시군구_코드,
+        건축_연도: 메타_행?.건축_연도 ?? null,
+        평형_옵션,
+        최근_매매: { 평균_만원: 매매_avg, 건수: 최근_매매_값.length },
+        최근_전세: { 평균_만원: 전세_avg, 건수: 최근_전세_값.length },
+        역대_최고가_만원: 최고가_거래?.거래_금액_만원 ?? null,
+        역대_최고가_월: 최고가_거래?.계약_일자.slice(0, 7) ?? null,
+        전세가율,
+        경위_분포,
+        이상치_건수,
+      },
+      월별_평균,
+      거래들: 옵션.이상치_제외
+        ? 거래들.filter((t) => !t.이상치_의심)
+        : 거래들,
+    };
+  }
+}
