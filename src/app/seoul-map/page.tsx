@@ -22,7 +22,7 @@ export default async function 서울지도_페이지({
   시작.setMonth(시작.getMonth() - 기간_개월);
   const 종료 = new Date();
 
-  const 매핑된 = 지표들.filter((r) => r.매매_평균가_만원 != null).length;
+  const 매핑된 = 지표들.filter((r) => r.매매_평당_만원 != null).length;
 
   return (
     <>

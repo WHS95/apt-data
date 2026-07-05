@@ -7,12 +7,18 @@ import {
   type 필터,
 } from "../../presentation/components/네이버_스타일_필터";
 import { 검색바 } from "../../presentation/components/검색바";
-import { 단지_추천_행, 단지_추천_헤더 } from "../../presentation/components/단지_추천_행";
+import { 단지_추천_헤더 } from "../../presentation/components/단지_추천_행";
+import { 단지_추천_리스트 } from "../../presentation/components/단지_추천_리스트";
 import { 컨테이너 } from "../../infrastructure/di/컨테이너";
 import type { 물건_유형_코드 } from "../../domain/공통/코드";
 import type { 추천_카테고리 } from "../../domain/통계/단지추천";
 
 export const dynamic = "force-dynamic";
+
+// 무한 스크롤 상한: 추천은 랭킹 상위가 핵심이라 상위 N개만 프리로드하고
+// 클라이언트에서 30개씩 점진 노출한다. 전체 매칭은 필터에 따라 수만 개까지 가므로
+// 캡을 두어 페이로드/DOM 을 제한하고, 잘렸을 땐 안내로 정직하게 표시한다.
+const 표시_상한 = 200;
 
 const 권역_선택지 = [
   { 값: "서울", 라벨: "서울" },
@@ -167,9 +173,12 @@ export default async function 단지추천_페이지({
       예산_하한_만원: 예산_범위.최소,
       예산_상한_만원: 예산_범위.최대,
       정렬: 정렬값,
-      최대: 30,
+      최대: 표시_상한 + 1, // +1 로 상한 초과(잘림) 여부를 판별
     })
     .catch(() => []);
+
+  const 잘림 = 단지들.length > 표시_상한;
+  const 표시_목록 = 단지들.slice(0, 표시_상한);
 
   const 최소_거래 =
     기간_개월 <= 1 ? 1 :
@@ -219,7 +228,7 @@ export default async function 단지추천_페이지({
               </span>
               <span>·</span>
               <span>
-                {단지들.length}개 · 최소 거래 {최소_거래}건
+                {표시_목록.length.toLocaleString("ko-KR")}개{잘림 ? "+" : ""} · 최소 거래 {최소_거래}건
               </span>
             </div>
           </div>
@@ -337,20 +346,18 @@ export default async function 단지추천_페이지({
       </div>
 
       <section className="mx-auto w-full px-6 py-4">
-        {단지들.length === 0 ? (
+        {표시_목록.length === 0 ? (
           <div className="toss-card p-12 text-center text-[var(--color-ink-3)]">
             조건에 맞는 단지가 없습니다. 필터를 완화해보세요.
           </div>
         ) : (
           <div className="toss-card overflow-hidden">
             <단지_추천_헤더 />
-            <ul>
-              {단지들.map((d, i) => (
-                <li key={d.단지_키}>
-                  <단지_추천_행 단지={d} 순위={i + 1} />
-                </li>
-              ))}
-            </ul>
+            <단지_추천_리스트
+              key={JSON.stringify(p)}
+              행들={표시_목록}
+              잘림={잘림}
+            />
           </div>
         )}
       </section>
