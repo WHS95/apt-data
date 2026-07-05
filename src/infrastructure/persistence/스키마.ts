@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -100,14 +101,16 @@ export const 실거래_테이블 = pgTable(
     ),
     시군구_색인: index("idx_tx_sigungu").on(테이블.시군구_코드, 테이블.계약_일자),
     단지_색인: index("idx_tx_danji").on(테이블.단지_코드, 테이블.계약_일자),
+    // 금액/보증금은 매매↔전세에서 한쪽이 항상 NULL. Postgres unique index 는 NULL 을
+    // 서로 다르게 취급하므로 COALESCE(-1) 로 감싸야 실제 중복이 방지된다(재수집 중복 차단).
     중복_방지: uniqueIndex("uq_tx_natural").on(
       테이블.시군구_코드,
       테이블.단지명,
       테이블.계약_일자,
       테이블.전용_면적_제곱미터,
       테이블.층,
-      테이블.거래_금액_만원,
-      테이블.보증금_만원,
+      sql`(COALESCE(${테이블.거래_금액_만원}, -1))`,
+      sql`(COALESCE(${테이블.보증금_만원}, -1))`,
       테이블.거래_유형,
     ),
   }),
