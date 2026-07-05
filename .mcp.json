@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "aside": {
+      "command": "/Users/seo.woohyeok/.local/bin/aside",
+      "args": ["mcp"]
+    }
+  }
+}

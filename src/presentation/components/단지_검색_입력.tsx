@@ -15,7 +15,7 @@ export const 단지_검색_입력 = ({ 기본값 }: 속성) => {
     e.preventDefault();
     const 정리 = 값.trim();
     if (!정리) return;
-    라우터.push(`/trend?단지=${encodeURIComponent(정리)}`);
+    라우터.push(`/trend?name=${encodeURIComponent(정리)}`);
   };
 
   return (

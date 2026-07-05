@@ -32,11 +32,11 @@ const 기간_계산 = (개월_텍스트: string): { 시작: string; 종료: stri
 export default async function 전세가율_페이지({
   searchParams,
 }: {
-  searchParams: Promise<{ 시도?: string; 기간?: string }>;
+  searchParams: Promise<{ sido?: string; months?: string }>;
 }) {
   const 파라미터 = await searchParams;
-  const 시도_코드 = 파라미터.시도 ?? "11000";
-  const 기간 = 기간_계산(파라미터.기간 ?? "6");
+  const 시도_코드 = 파라미터.sido ?? "11000";
+  const 기간 = 기간_계산(파라미터.months ?? "6");
 
   const 유스케이스 = new 전세가율_히트맵_유스케이스();
   const 셀_목록 = await 유스케이스
@@ -59,8 +59,8 @@ export default async function 전세가율_페이지({
       />
       <필터바
         필터들={[
-          { 키: "시도", 라벨: "시도", 선택지: 시도_선택지, 기본값: "11000" },
-          { 키: "기간", 라벨: "기간", 선택지: 기간_선택지, 기본값: "6" },
+          { 키: "sido", 라벨: "시도", 선택지: 시도_선택지, 기본값: "11000" },
+          { 키: "months", 라벨: "기간", 선택지: 기간_선택지, 기본값: "6" },
         ]}
       />
       <section className="mx-auto max-w-[1200px] px-6 py-10">

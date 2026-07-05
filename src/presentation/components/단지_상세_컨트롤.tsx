@@ -34,7 +34,7 @@ export const 단지_상세_컨트롤 = ({
     시작(() => 라우터.push(`?${다음.toString()}`));
   };
 
-  const 정상_토글 = () => 갱신("정상", 정상만 ? "" : "1");
+  const 정상_토글 = () => 갱신("cleanonly", 정상만 ? "" : "1");
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -45,7 +45,7 @@ export const 단지_상세_컨트롤 = ({
       ].map((옵션) => (
         <button
           key={옵션.값}
-          onClick={() => 갱신("거래", 옵션.값)}
+          onClick={() => 갱신("deal", 옵션.값)}
           className={`pill ${현재_거래유형 === 옵션.값 ? "pill-active" : ""}`}
         >
           {옵션.라벨}
@@ -56,7 +56,7 @@ export const 단지_상세_컨트롤 = ({
 
       {/* 평형 */}
       <button
-        onClick={() => 갱신("평형", "전체")}
+        onClick={() => 갱신("areaband", "전체")}
         className={`pill ${현재_평형 === "전체" ? "pill-active" : ""}`}
       >
         전체 평형
@@ -64,7 +64,7 @@ export const 단지_상세_컨트롤 = ({
       {평형_옵션.map((p) => (
         <button
           key={p.코드}
-          onClick={() => 갱신("평형", p.코드)}
+          onClick={() => 갱신("areaband", p.코드)}
           className={`pill ${현재_평형 === p.코드 ? "pill-active" : ""}`}
         >
           {p.라벨} <span className="text-[var(--color-ink-4)] font-medium">({p.거래수})</span>

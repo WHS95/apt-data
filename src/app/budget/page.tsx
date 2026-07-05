@@ -40,12 +40,12 @@ const 기간_계산 = (개월_텍스트: string) => {
 export default async function 예산매물_페이지({
   searchParams,
 }: {
-  searchParams: Promise<{ 예산?: string; 물건?: string; 기간?: string }>;
+  searchParams: Promise<{ price?: string; type?: string; months?: string }>;
 }) {
   const p = await searchParams;
-  const 예산_만원 = Number(p.예산 ?? "60000");
-  const 물건 = (p.물건 ?? "A") as "A" | "B" | "D";
-  const 기간 = 기간_계산(p.기간 ?? "6");
+  const 예산_만원 = Number(p.price ?? "60000");
+  const 물건 = (p.type ?? "A") as "A" | "B" | "D";
+  const 기간 = 기간_계산(p.months ?? "6");
 
   const 유스케이스 = new 예산별_매물분포_유스케이스();
   const 버킷_목록 = await 유스케이스
@@ -69,9 +69,9 @@ export default async function 예산매물_페이지({
       />
       <필터바
         필터들={[
-          { 키: "예산", 라벨: "예산", 선택지: 예산_선택지, 기본값: "60000" },
-          { 키: "물건", 라벨: "물건", 선택지: 물건_선택지, 기본값: "A" },
-          { 키: "기간", 라벨: "기간", 선택지: 기간_선택지, 기본값: "6" },
+          { 키: "price", 라벨: "예산", 선택지: 예산_선택지, 기본값: "60000" },
+          { 키: "type", 라벨: "물건", 선택지: 물건_선택지, 기본값: "A" },
+          { 키: "months", 라벨: "기간", 선택지: 기간_선택지, 기본값: "6" },
         ]}
       />
       <section className="mx-auto max-w-[1200px] px-6 py-10">

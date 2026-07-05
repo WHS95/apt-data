@@ -23,6 +23,11 @@ export interface 단지_추천_행 {
   변화_6개월_퍼센트: number | null;
   전세가율_퍼센트: number | null;
 
+  평당가_만원: number | null;
+  갭_만원: number | null;
+  직거래_비율: number;
+  이상치_건수: number;
+
   점수_가성비: number;
   점수_모멘텀: number;
   점수_유동성: number;

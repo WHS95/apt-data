@@ -59,33 +59,33 @@ export default async function 로우_데이터_페이지({
   searchParams,
 }: {
   searchParams: Promise<{
-    시도?: string;
-    물건?: string;
-    거래?: string;
-    평형?: string;
-    정렬?: string;
-    사이즈?: string;
-    페이지?: string;
-    단지?: string;
-    해제?: string;
-    직거래?: string;
+    sido?: string;
+    type?: string;
+    deal?: string;
+    areaband?: string;
+    sort?: string;
+    size?: string;
+    page?: string;
+    name?: string;
+    showcancelled?: string;
+    onlybroker?: string;
   }>;
 }) {
   const p = await searchParams;
-  const 시도 = p.시도 ?? "전체";
-  const 물건 = p.물건 ?? "전체";
-  const 거래 = p.거래 ?? "전체";
-  const 평형 = p.평형 ?? "전체";
-  const 정렬 = (p.정렬 ?? "최신순") as
+  const 시도 = p.sido ?? "전체";
+  const 물건 = p.type ?? "전체";
+  const 거래 = p.deal ?? "전체";
+  const 평형 = p.areaband ?? "전체";
+  const 정렬 = (p.sort ?? "최신순") as
     | "최신순"
     | "오래된순"
     | "금액_높은순"
     | "금액_낮은순";
-  const 사이즈 = Number(p.사이즈 ?? "50");
-  const 페이지 = Math.max(1, Number(p.페이지 ?? "1"));
-  const 단지명 = (p.단지 ?? "").trim();
-  const 해제포함 = p.해제 === "1";
-  const 직거래제외 = p.직거래 === "1";
+  const 사이즈 = Number(p.size ?? "50");
+  const 페이지 = Math.max(1, Number(p.page ?? "1"));
+  const 단지명 = (p.name ?? "").trim();
+  const 해제포함 = p.showcancelled === "1";
+  const 직거래제외 = p.onlybroker === "1";
 
   const 조건 = {
     시도_코드: 시도 === "전체" ? undefined : 시도,
@@ -132,16 +132,16 @@ export default async function 로우_데이터_페이지({
   const 총_페이지 = Math.max(1, Math.ceil(총_개수 / 사이즈));
   const 페이지_생성 = (n: number) => {
     const 다음 = new URLSearchParams();
-    if (시도 !== "전체") 다음.set("시도", 시도);
-    if (물건 !== "전체") 다음.set("물건", 물건);
-    if (거래 !== "전체") 다음.set("거래", 거래);
-    if (평형 !== "전체") 다음.set("평형", 평형);
-    if (정렬 !== "최신순") 다음.set("정렬", 정렬);
-    if (사이즈 !== 50) 다음.set("사이즈", String(사이즈));
-    if (단지명) 다음.set("단지", 단지명);
-    if (해제포함) 다음.set("해제", "1");
-    if (직거래제외) 다음.set("직거래", "1");
-    다음.set("페이지", String(n));
+    if (시도 !== "전체") 다음.set("sido", 시도);
+    if (물건 !== "전체") 다음.set("type", 물건);
+    if (거래 !== "전체") 다음.set("deal", 거래);
+    if (평형 !== "전체") 다음.set("areaband", 평형);
+    if (정렬 !== "최신순") 다음.set("sort", 정렬);
+    if (사이즈 !== 50) 다음.set("size", String(사이즈));
+    if (단지명) 다음.set("name", 단지명);
+    if (해제포함) 다음.set("showcancelled", "1");
+    if (직거래제외) 다음.set("onlybroker", "1");
+    다음.set("page", String(n));
     return `?${다음.toString()}`;
   };
 
@@ -170,12 +170,12 @@ export default async function 로우_데이터_페이지({
 
       <필터바
         필터들={[
-          { 키: "시도", 라벨: "시도", 선택지: 시도_선택지, 기본값: "전체" },
-          { 키: "물건", 라벨: "물건", 선택지: 물건_선택지, 기본값: "전체" },
-          { 키: "거래", 라벨: "거래", 선택지: 거래유형_선택지, 기본값: "전체" },
-          { 키: "평형", 라벨: "평형", 선택지: 평형_선택지, 기본값: "전체" },
-          { 키: "정렬", 라벨: "정렬", 선택지: 정렬_선택지, 기본값: "최신순" },
-          { 키: "사이즈", 라벨: "페이지", 선택지: 사이즈_선택지, 기본값: "50" },
+          { 키: "sido", 라벨: "시도", 선택지: 시도_선택지, 기본값: "전체" },
+          { 키: "type", 라벨: "물건", 선택지: 물건_선택지, 기본값: "전체" },
+          { 키: "deal", 라벨: "거래", 선택지: 거래유형_선택지, 기본값: "전체" },
+          { 키: "areaband", 라벨: "평형", 선택지: 평형_선택지, 기본값: "전체" },
+          { 키: "sort", 라벨: "정렬", 선택지: 정렬_선택지, 기본값: "최신순" },
+          { 키: "size", 라벨: "페이지", 선택지: 사이즈_선택지, 기본값: "50" },
         ]}
       />
 

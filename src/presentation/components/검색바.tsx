@@ -14,14 +14,14 @@ export const 검색바 = ({
 }: 속성) => {
   const 라우터 = useRouter();
   const sp = useSearchParams();
-  const [값, 값_설정] = useState(sp.get("검색") ?? "");
+  const [값, 값_설정] = useState(sp.get("q") ?? "");
   const [전환중, 시작] = useTransition();
 
   const 제출 = (e: React.FormEvent) => {
     e.preventDefault();
     const q = 값.trim();
     if (!q) return;
-    시작(() => 라우터.push(`${기본_경로}?검색=${encodeURIComponent(q)}`));
+    시작(() => 라우터.push(`${기본_경로}?q=${encodeURIComponent(q)}`));
   };
 
   return (

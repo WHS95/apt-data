@@ -225,8 +225,11 @@ html, body {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.fade-in { animation: fade-in 250ms ease-out both; }
-.paper-in { animation: fade-in 250ms ease-out both; }
+/* fill-mode: backwards — 진입 시 from 상태만 적용, 종료 후 transform 을 남기지 않음
+   (both 는 translateY(0) 을 유지해 main 을 stacking context/containing block 로 만들어
+    자식 popover(z-30)가 sticky 사이드바 밑으로 잘리는 버그를 유발했음) */
+.fade-in { animation: fade-in 250ms ease-out backwards; }
+.paper-in { animation: fade-in 250ms ease-out backwards; }
 
 @media (prefers-reduced-motion: reduce) {
   .fade-in, .paper-in { animation: none; }

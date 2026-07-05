@@ -41,6 +41,18 @@ const 평형_라벨 = (m2: number): string => {
   return `${Math.round(m2)}㎡·${평}평`;
 };
 
+// 갭(만원) → "N억 N천" 압축 표기 (음수는 깡통, 3천만도 "0억"으로 뭉개지지 않게)
+const 갭_라벨 = (만원: number): string => {
+  const 음수 = 만원 < 0;
+  const 절대 = Math.abs(만원);
+  const 억 = Math.floor(절대 / 10000);
+  const 천 = Math.round((절대 % 10000) / 1000);
+  let 본문: string;
+  if (억 >= 1) 본문 = 천 > 0 ? `${억}억 ${천}천` : `${억}억`;
+  else 본문 = `${(절대 / 1000).toFixed(0)}천`;
+  return 음수 ? `-${본문}` : 본문;
+};
+
 const 그리드 =
   "grid grid-cols-[28px_28px_minmax(0,1.9fr)_minmax(0,0.9fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_minmax(0,0.6fr)_minmax(0,0.6fr)_minmax(60px,84px)_44px_48px_28px] gap-2 items-center px-3 overflow-hidden";
 
@@ -77,8 +89,18 @@ export const 단지_추천_행 = ({ 단지, 순위 }: 속성) => {
       </div>
 
       <div className="min-w-0">
-        <div className="text-[13px] font-extrabold tracking-tight truncate leading-tight">
-          {단지.단지명}
+        <div className="flex items-center gap-1 min-w-0">
+          <div className="text-[13px] font-extrabold tracking-tight truncate leading-tight min-w-0">
+            {단지.단지명}
+          </div>
+          {단지.직거래_비율 >= 10 || 단지.이상치_건수 >= 3 ? (
+            <span
+              title={`직거래 ${단지.직거래_비율}% · 이상치 ${단지.이상치_건수}건`}
+              className="flex-shrink-0 text-[11px] text-[var(--color-warn)] leading-none"
+            >
+              ⚠
+            </span>
+          ) : null}
         </div>
         <div className="text-[10px] text-[var(--color-ink-3)] mt-0.5 font-medium truncate">
           {단지.시군구명} · {평형_라벨(단지.평균_면적_제곱미터)}
@@ -93,6 +115,11 @@ export const 단지_추천_행 = ({ 단지, 순위 }: 속성) => {
         {단지.최신_거래일 ? (
           <div className="text-[9px] text-[var(--color-ink-3)] mt-0.5 font-medium num">
             {단지.최신_거래일.slice(5).replace("-", "/")}
+          </div>
+        ) : null}
+        {단지.평당가_만원 != null ? (
+          <div className="text-[10px] text-[var(--color-ink-3)] mt-0.5 font-medium num">
+            평당 {단지.평당가_만원.toLocaleString("ko-KR")}만
           </div>
         ) : null}
       </div>
@@ -133,12 +160,17 @@ export const 단지_추천_행 = ({ 단지, 순위 }: 속성) => {
 
       <div className="text-right">
         {단지.전세가율_퍼센트 != null ? (
-          <span className={`num text-[11px] font-bold ${단지.전세가율_퍼센트 >= 80 ? "text-[var(--color-warn)]" : 단지.전세가율_퍼센트 <= 55 ? "text-[var(--color-down)]" : "text-[var(--color-ink-2)]"}`}>
+          <div className={`num text-[11px] font-bold leading-none ${단지.전세가율_퍼센트 >= 80 ? "text-[var(--color-warn)]" : 단지.전세가율_퍼센트 <= 55 ? "text-[var(--color-down)]" : "text-[var(--color-ink-2)]"}`}>
             {단지.전세가율_퍼센트.toFixed(0)}%
-          </span>
+          </div>
         ) : (
-          <span className="num text-[11px] text-[var(--color-ink-4)]">—</span>
+          <div className="num text-[11px] text-[var(--color-ink-4)] leading-none">—</div>
         )}
+        {단지.갭_만원 != null ? (
+          <div className="text-[9px] text-[var(--color-ink-3)] mt-0.5 font-medium num">
+            갭 {갭_라벨(단지.갭_만원)}
+          </div>
+        ) : null}
       </div>
 
       <div className="flex justify-center items-center">
@@ -190,14 +222,59 @@ export const 단지_추천_헤더 = () => (
     <span className="label text-center">#</span>
     <span />
     <span className="label">단지 / 시군구</span>
-    <span className="label text-right">최신 거래가</span>
-    <span className="label text-right">거래량</span>
-    <span className="label text-right">6개월</span>
-    <span className="label text-right">가성비</span>
-    <span className="label text-right">전세가율</span>
-    <span className="label text-center">추이</span>
-    <span className="label text-center">점수</span>
-    <span className="label text-center">매물</span>
-    <span className="label text-center">관심</span>
+    <span
+      className="label text-right cursor-help"
+      title="이상치·직거래를 제외한 최근 정상 거래가"
+    >
+      최신 거래가
+    </span>
+    <span
+      className="label text-right cursor-help"
+      title="최근 1년 매매+전세 거래 건수 (활발/한산)"
+    >
+      거래량
+    </span>
+    <span
+      className="label text-right cursor-help"
+      title="6개월 전 대비 매매가 변화율 (+상승/−하락)"
+    >
+      6개월
+    </span>
+    <span
+      className="label text-right cursor-help"
+      title="시군구 평균가 대비 이 단지 가격 (−저렴 / +비쌈)"
+    >
+      가성비
+    </span>
+    <span
+      className="label text-right cursor-help"
+      title="전세가 ÷ 매매가 (70% 부근이 안정)"
+    >
+      전세가율
+    </span>
+    <span
+      className="label text-center cursor-help"
+      title="최근 12개월 월별 평균 매매가 흐름"
+    >
+      추이
+    </span>
+    <span
+      className="label text-center cursor-help"
+      title="가성비·모멘텀·거래량·안정성·신축도 종합 점수"
+    >
+      점수
+    </span>
+    <span
+      className="label text-center cursor-help"
+      title="네이버 부동산 매물 검색"
+    >
+      매물
+    </span>
+    <span
+      className="label text-center cursor-help"
+      title="관심 단지로 저장"
+    >
+      관심
+    </span>
   </div>
 );

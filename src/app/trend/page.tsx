@@ -8,10 +8,10 @@ export const dynamic = "force-dynamic";
 export default async function 단지추이_페이지({
   searchParams,
 }: {
-  searchParams: Promise<{ 단지?: string }>;
+  searchParams: Promise<{ name?: string }>;
 }) {
   const p = await searchParams;
-  const 단지명 = (p.단지 ?? "").trim();
+  const 단지명 = (p.name ?? "").trim();
 
   const 종료 = new Date();
   const 시작 = new Date();

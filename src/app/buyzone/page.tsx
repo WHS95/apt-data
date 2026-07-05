@@ -45,12 +45,12 @@ const 권역_코드 = (v: string): string[] => {
 export default async function 매수추천_페이지({
   searchParams,
 }: {
-  searchParams: Promise<{ 권역?: string; 면적?: string; 예산?: string }>;
+  searchParams: Promise<{ region?: string; area?: string; price?: string }>;
 }) {
   const p = await searchParams;
-  const 권역 = p.권역 ?? "수도권";
-  const 면적 = (p.면적 ?? "전체") as 면적_구간_코드 | "전체";
-  const 예산_만원 = Number(p.예산 ?? "0");
+  const 권역 = p.region ?? "수도권";
+  const 면적 = (p.area ?? "전체") as 면적_구간_코드 | "전체";
+  const 예산_만원 = Number(p.price ?? "0");
 
   const 유스 = new 수도권_매수추천_유스케이스();
   const 행들 = await 유스
@@ -78,9 +78,9 @@ export default async function 매수추천_페이지({
       />
       <필터바
         필터들={[
-          { 키: "권역", 라벨: "권역", 선택지: 권역_선택지, 기본값: "수도권" },
-          { 키: "면적", 라벨: "평형", 선택지: 면적_선택지, 기본값: "전체" },
-          { 키: "예산", 라벨: "예산", 선택지: 예산_선택지, 기본값: "0" },
+          { 키: "region", 라벨: "권역", 선택지: 권역_선택지, 기본값: "수도권" },
+          { 키: "area", 라벨: "평형", 선택지: 면적_선택지, 기본값: "전체" },
+          { 키: "price", 라벨: "예산", 선택지: 예산_선택지, 기본값: "0" },
         ]}
       />
       {/* 상단 요약 카드 */}

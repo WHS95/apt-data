@@ -42,11 +42,11 @@ const 월_이동 = (년: number, 월: number, 변화: number): string => {
 export default async function 분양캘린더_페이지({
   searchParams,
 }: {
-  searchParams: Promise<{ 시도?: string; 월?: string; 일?: string }>;
+  searchParams: Promise<{ sido?: string; month?: string; day?: string }>;
 }) {
   const p = await searchParams;
-  const 시도 = p.시도 ?? "전체";
-  const { 년, 월 } = 월_파싱(p.월);
+  const 시도 = p.sido ?? "전체";
+  const { 년, 월 } = 월_파싱(p.month);
 
   const 시작_d = new Date(년, 월 - 1, 1);
   const 종료_d = new Date(년, 월, 0);
@@ -104,14 +104,14 @@ export default async function 분양캘린더_페이지({
 
   const 경로_생성 = (월_파라미터?: string, 일_파라미터?: string) => {
     const sp = new URLSearchParams();
-    if (시도 !== "전체") sp.set("시도", 시도);
-    sp.set("월", 월_파라미터 ?? `${년}-${String(월).padStart(2, "0")}`);
-    if (일_파라미터) sp.set("일", 일_파라미터);
-    else if (p.일) sp.set("일", p.일);
+    if (시도 !== "전체") sp.set("sido", 시도);
+    sp.set("month", 월_파라미터 ?? `${년}-${String(월).padStart(2, "0")}`);
+    if (일_파라미터) sp.set("day", 일_파라미터);
+    else if (p.day) sp.set("day", p.day);
     return `?${sp.toString()}`;
   };
 
-  const 선택_일자 = p.일 ?? null;
+  const 선택_일자 = p.day ?? null;
   const 선택_거래 = 선택_일자 ? 일자별.get(선택_일자) : null;
 
   return (
@@ -131,7 +131,7 @@ export default async function 분양캘린더_페이지({
 
       <필터바
         필터들={[
-          { 키: "시도", 라벨: "권역", 선택지: 시도_선택지, 기본값: "전체" },
+          { 키: "sido", 라벨: "권역", 선택지: 시도_선택지, 기본값: "전체" },
         ]}
       />
 

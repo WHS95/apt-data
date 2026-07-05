@@ -7,6 +7,7 @@ import { 범위_슬라이더 } from "./범위_슬라이더";
 export interface 옵션 {
   값: string;
   라벨: string;
+  설명?: string;
 }
 
 export interface 칩_필터 {
@@ -23,6 +24,7 @@ export interface 드롭다운_필터 {
   옵션들: 옵션[];
   기본값: string;
   그리드열?: 2 | 3 | 4;
+  우측정렬?: boolean; // 최우측 필터: 패널을 오른쪽 기준으로 열어 사이드바 침범 방지
 }
 
 export interface 다중_드롭다운_필터 {
@@ -231,7 +233,11 @@ export const 네이버_스타일_필터 = ({ 필터들 }: 속성) => {
               </button>
 
               {열림 && (
-                <div className="absolute top-[calc(100%+8px)] left-0 z-30 min-w-[280px] toss-card p-4 shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+                <div
+                  className={`absolute top-[calc(100%+8px)] z-30 min-w-[280px] toss-card p-4 shadow-[0_8px_24px_rgba(0,0,0,0.08)] ${
+                    f.우측정렬 ? "right-0" : "left-0"
+                  }`}
+                >
                   <div className="flex items-center justify-between mb-3 pb-3 border-b hairline">
                     <h4 className="text-[14px] font-extrabold tracking-tight">
                       {f.라벨}
@@ -267,7 +273,12 @@ export const 네이버_스타일_필터 = ({ 필터들 }: 속성) => {
                               : "border-[var(--color-line)] bg-[var(--color-bg)] text-[var(--color-ink-2)] hover:bg-[var(--color-bg-soft)]"
                           }`}
                         >
-                          {o.라벨}
+                          <span className="block">{o.라벨}</span>
+                          {o.설명 && (
+                            <span className="block text-[10px] font-medium text-[var(--color-ink-3)] mt-0.5 leading-tight">
+                              {o.설명}
+                            </span>
+                          )}
                         </button>
                       );
                     })}

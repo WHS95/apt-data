@@ -3,16 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const 네비 = [
-  { 라벨: "홈", 경로: "/" },
-  { 라벨: "단지추천", 경로: "/picks" },
-  { 라벨: "관심", 경로: "/favorites" },
-  { 라벨: "수도권", 경로: "/buyzone" },
-  { 라벨: "전세가율", 경로: "/jeonse" },
-  { 라벨: "예산매물", 경로: "/budget" },
-  { 라벨: "단지추이", 경로: "/trend" },
-  { 라벨: "권역비교", 경로: "/region" },
-  { 라벨: "분양캘린더", 경로: "/presale" },
+// 기능별 3그룹: 탐색 / 지역·시장 / 상세·이벤트
+const 네비_그룹: { 라벨: string; 경로: string }[][] = [
+  [
+    { 라벨: "홈", 경로: "/" },
+    { 라벨: "단지추천", 경로: "/picks" },
+    { 라벨: "관심", 경로: "/favorites" },
+  ],
+  [
+    { 라벨: "서울지도", 경로: "/seoul-map" },
+    { 라벨: "수도권", 경로: "/buyzone" },
+    { 라벨: "권역비교", 경로: "/region" },
+    { 라벨: "전세가율", 경로: "/jeonse" },
+  ],
+  [
+    { 라벨: "예산매물", 경로: "/budget" },
+    { 라벨: "단지추이", 경로: "/trend" },
+    { 라벨: "분양캘린더", 경로: "/presale" },
+  ],
 ];
 
 export const 상단_헤더 = () => {
@@ -31,23 +39,33 @@ export const 상단_헤더 = () => {
               <span className="text-[var(--color-brand)]">.</span>
             </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-1">
-            {네비.map((n) => {
-              const 활성 = n.경로 === "/" ? pathname === "/" : pathname.startsWith(n.경로);
-              return (
-                <Link
-                  key={n.경로}
-                  href={n.경로}
-                  className={`px-3 py-1.5 rounded-lg text-[14px] font-bold transition-colors ${
-                    활성
-                      ? "text-[var(--color-ink)]"
-                      : "text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
-                  }`}
-                >
-                  {n.라벨}
-                </Link>
-              );
-            })}
+          <nav className="hidden md:flex items-center gap-0.5">
+            {네비_그룹.map((그룹, 그룹_i) => (
+              <div key={그룹_i} className="flex items-center gap-0.5">
+                {그룹_i > 0 && (
+                  <span className="w-px h-4 bg-[var(--color-line)] mx-2" />
+                )}
+                {그룹.map((n) => {
+                  const 활성 =
+                    n.경로 === "/"
+                      ? pathname === "/"
+                      : pathname.startsWith(n.경로);
+                  return (
+                    <Link
+                      key={n.경로}
+                      href={n.경로}
+                      className={`px-2.5 py-1.5 rounded-lg text-[14px] font-bold transition-colors ${
+                        활성
+                          ? "text-[var(--color-ink)] bg-[var(--color-bg-mute)]"
+                          : "text-[var(--color-ink-3)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg-soft)]"
+                      }`}
+                    >
+                      {n.라벨}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </div>
         <div className="flex items-center gap-2">

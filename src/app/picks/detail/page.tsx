@@ -49,23 +49,23 @@ export default async function 단지상세_페이지({
   searchParams: Promise<{
     sgg?: string;
     name?: string;
-    검색?: string;
-    거래?: string;
-    평형?: string;
-    정상?: string;
-    기간?: string;
+    q?: string;
+    deal?: string;
+    areaband?: string;
+    cleanonly?: string;
+    months?: string;
   }>;
 }) {
   const p = await searchParams;
 
-  if (p.검색 && (!p.sgg || !p.name)) {
-    const 결과들 = await 검색_결과_조회(p.검색);
+  if (p.q && (!p.sgg || !p.name)) {
+    const 결과들 = await 검색_결과_조회(p.q);
     return (
       <>
         <페이지_제목
           제목="단지 검색"
           부제="SEARCH"
-          설명={`"${p.검색}" 검색 결과 — 거래 건수 기준 상위 ${결과들.length}건`}
+          설명={`"${p.q}" 검색 결과 — 거래 건수 기준 상위 ${결과들.length}건`}
         />
         <div className="border-b hairline">
           <div className="mx-auto max-w-[1240px] px-6 py-4">
@@ -122,10 +122,10 @@ export default async function 단지상세_페이지({
     );
   }
 
-  const 거래_유형 = (p.거래 ?? "전체") as "전체" | "1" | "2";
-  const 평형 = (p.평형 ?? "전체") as 면적_구간_코드 | "전체";
-  const 정상만 = p.정상 === "1";
-  const 기간_연수 = Number(p.기간 ?? "3");
+  const 거래_유형 = (p.deal ?? "전체") as "전체" | "1" | "2";
+  const 평형 = (p.areaband ?? "전체") as 면적_구간_코드 | "전체";
+  const 정상만 = p.cleanonly === "1";
+  const 기간_연수 = Number(p.months ?? "3");
 
   const 결과 = await new 단지_상세_유스케이스().실행({
     시군구_코드: p.sgg,
@@ -254,10 +254,10 @@ export default async function 단지상세_페이지({
               const sp = new URLSearchParams();
               if (p.sgg) sp.set("sgg", p.sgg);
               if (p.name) sp.set("name", p.name);
-              if (p.거래) sp.set("거래", p.거래);
-              if (p.평형) sp.set("평형", p.평형);
-              if (p.정상) sp.set("정상", p.정상);
-              sp.set("기간", 옵션.값);
+              if (p.deal) sp.set("deal", p.deal);
+              if (p.areaband) sp.set("areaband", p.areaband);
+              if (p.cleanonly) sp.set("cleanonly", p.cleanonly);
+              sp.set("months", 옵션.값);
               const 활성 = String(기간_연수) === 옵션.값;
               return (
                 <Link
