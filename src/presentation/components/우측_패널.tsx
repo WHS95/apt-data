@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { use_관심_단지, type 관심_단지 } from "../hooks/use_관심_단지";
+import { 광고_슬롯 } from "./광고_슬롯";
+import { 애드센스_슬롯_사이드바, 애드센스_활성 } from "../../config/수익화";
 
 const 시도_색 = (코드: string): string => {
   switch (코드) {
@@ -167,6 +169,13 @@ export const 우측_패널 = () => {
             />
           ))}
         </ul>
+      )}
+
+      {/* 사이드바 광고 — 게시자·슬롯 ID 설정 시에만 노출(미승인 시 빈 공간 없음) */}
+      {애드센스_활성 && 애드센스_슬롯_사이드바 && (
+        <div className="px-5 py-4 border-t hairline">
+          <광고_슬롯 슬롯={애드센스_슬롯_사이드바} />
+        </div>
       )}
     </aside>
   );

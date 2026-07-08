@@ -33,12 +33,12 @@ export const 상단_헤더 = () => {
       <div className="mx-auto max-w-[1240px] px-6 h-[60px] flex items-center justify-between gap-6">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
-            <span className="w-7 h-7 rounded-full bg-[var(--color-brand)] flex items-center justify-center">
-              <span className="text-white text-[14px] font-extrabold">한</span>
+            <span className="w-7 h-7 rounded-[8px] bg-[var(--color-brand)] flex items-center justify-center">
+              {/* 시그니처: 코발트 위 앰버 — 어두운 바탕이라 앰버가 살아난다 */}
+              <span className="text-[var(--color-accent)] text-[14px] font-extrabold">A</span>
             </span>
-            <span className="text-[18px] font-extrabold tracking-tight">
-              한지
-              <span className="text-[var(--color-brand)]">.</span>
+            <span className="text-[18px] font-extrabold tracking-tight whitespace-nowrap">
+              APT <span className="text-[var(--color-brand)]">DATA</span>
             </span>
           </Link>
           <nav className="hidden md:flex items-center gap-0.5">

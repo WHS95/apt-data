@@ -31,9 +31,11 @@
   --color-warn: #FF9500;
   --color-warn-soft: #FFF2D9;
 
-  /* 브랜드 */
-  --color-brand: #3182F6;
-  --color-brand-soft: #DBEAFE;
+  /* 브랜드 — 부동산 DATA 코발트 */
+  --color-brand: #004AAD;
+  --color-brand-soft: #DCE7F7;
+  /* 시그니처 앰버 — 브랜드 액센트(극히 제한적으로 사용) */
+  --color-accent: #FFC400;
 
   /* 호환성 (기존 코드용) */
   --color-paper: var(--color-bg);
@@ -151,7 +153,7 @@ html, body {
   cursor: pointer;
   transition: background 150ms ease;
 }
-.btn-primary:hover { background: #1F6FE5; }
+.btn-primary:hover { background: #0B57C2; }
 
 .btn-ghost {
   display: inline-flex;

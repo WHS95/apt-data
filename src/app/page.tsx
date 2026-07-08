@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { 예산_위젯 } from "../presentation/components/예산_위젯";
+import { 쿠팡_추천 } from "../presentation/components/쿠팡_추천";
 
 const 페르소나 = [
   {
@@ -114,9 +115,9 @@ export default function 홈_페이지() {
               <br />첫 집을 본다.
             </h1>
             <p className="mt-7 max-w-[54ch] text-[16px] md:text-[17px] text-[var(--color-ink-2)] leading-[1.7] font-medium">
-              한지는 정부에 신고된 실거래만으로 집을 판단하는 데이터
-              도구입니다. 광고·호가가 아니라 진짜 거래된 값으로,
-              신혼부부부터 갈아타기·투자까지 각자의 관점에서 봅니다.
+              APT DATA는 정부에 신고된 아파트 실거래가만으로 집을
+              판단합니다. 광고·호가가 아니라 진짜 거래된 값으로, 첫
+              집부터 갈아타기·투자까지 데이터 기준으로만 봅니다.
             </p>
           </div>
           <예산_위젯 />
@@ -198,6 +199,9 @@ export default function 홈_페이지() {
           ))}
         </div>
       </section>
+
+      {/* 신혼집 준비 — 쿠팡 파트너스 (링크 설정 시에만 노출) */}
+      <쿠팡_추천 />
 
       {/* 데이터 한계 */}
       <section className="mx-auto max-w-[1240px] px-6 pb-20">
