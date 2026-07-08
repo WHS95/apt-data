@@ -122,6 +122,27 @@ export const 수집_상태_테이블 = pgTable("collection_state", {
   갱신_시각: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// K-apt 공동주택 기본정보(주 1회 엑셀 적재). 실거래와 시군구+도로명/지번으로 매칭.
+export const 공동주택_테이블 = pgTable(
+  "kapt_danji",
+  {
+    단지코드: text("code").primaryKey(),
+    시도: text("sido"),
+    시군구: text("sigungu"),
+    단지명: text("danji_name"),
+    단지분류: text("category"),
+    법정동주소: text("legal_addr"),
+    도로명주소: text("road_addr"),
+    지번: text("jibun"),
+    사용승인일: text("approval_date"),
+    동수: integer("buildings"),
+    세대수: integer("households"),
+  },
+  (테이블) => ({
+    매칭_색인: index("idx_kapt_match").on(테이블.시군구, 테이블.지번),
+  }),
+);
+
 export const 수집_설정_테이블 = pgTable("scrape_config", {
   키: text("key").primaryKey().default("global"),
   활성: boolean("active").default(true).notNull(),
