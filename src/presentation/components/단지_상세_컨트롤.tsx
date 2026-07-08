@@ -31,7 +31,8 @@ export const 단지_상세_컨트롤 = ({
     const 다음 = new URLSearchParams(sp.toString());
     if (값 === "" || 값 === "전체") 다음.delete(키);
     else 다음.set(키, 값);
-    시작(() => 라우터.push(`?${다음.toString()}`));
+    // scroll:false — 필터 변경 시 화면이 상단으로 튀지 않게(차트/거래내역 위치 유지)
+    시작(() => 라우터.push(`?${다음.toString()}`, { scroll: false }));
   };
 
   const 정상_토글 = () => 갱신("cleanonly", 정상만 ? "" : "1");
