@@ -1,6 +1,7 @@
 import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { DB } from "../infrastructure/persistence/접속";
 import {
+  공동주택_테이블,
   시군구_테이블,
   시도_테이블,
   실거래_테이블,
@@ -8,6 +9,12 @@ import {
 import type { 물건_유형_코드 } from "../domain/공통/코드";
 import { 면적_구간 } from "../domain/공통/코드";
 import type { 면적_구간_코드 } from "../domain/공통/코드";
+import {
+  단지분류_그룹,
+  도로명_정규화,
+  세대수_규모,
+  시군구_매칭키,
+} from "../domain/공통/kapt_매칭";
 import type {
   단지_추천_행,
   추천_카테고리,
@@ -26,6 +33,8 @@ export interface 단지_추천_옵션 {
   예산_하한_만원?: number;
   카테고리?: 추천_카테고리;
   거래량_기준?: "매매" | "전월세"; // 거래량 컬럼·정렬을 어떤 거래유형으로 셀지 (기본 매매)
+  단지분류_그룹?: string; // 아파트/주상복합/연립/도시형 (K-apt 그룹). 미지정=전체
+  세대수_규모?: "대" | "중" | "소"; // 대 1000↑ / 중 300~1000 / 소 300↓
   기간_개월?: number;
   최대?: number;
   최소_거래_건수?: number;
@@ -187,6 +196,8 @@ export class 단지_추천_유스케이스 {
       단지명: 실거래_테이블.단지명,
       물건_유형: 실거래_테이블.물건_유형,
       평균_면적: sql<number>`avg(${실거래_테이블.전용_면적_제곱미터})::real`,
+      지번: sql<string>`max(${실거래_테이블.지번})`,
+      도로명: sql<string>`max(${실거래_테이블.도로명})`,
       건축_연도: sql<number>`max(${실거래_테이블.건축_연도})::int`,
       현재_평균가: sql<number>`
         avg(CASE
@@ -390,6 +401,9 @@ export class 단지_추천_유스케이스 {
           단지명: d.단지명!,
           물건_유형: d.물건_유형 as 물건_유형_코드,
           평균_면적_제곱미터: d.평균_면적 ?? 0,
+          지번: d.지번 ?? null,
+          단지분류: null, // 아래 K-apt 매칭에서 채움
+          세대수: null,
           건축_연도: d.건축_연도 ?? null,
           현재_평균가_만원: d.현재_평균가,
           최신_거래가_만원: 최신_정상?.거래가 ?? null,
@@ -420,9 +434,77 @@ export class 단지_추천_유스케이스 {
         return 행_기본;
       });
 
+    // ── K-apt 매칭(단지분류·세대수) ──────────────────────────────
+    // 도로명(끝 앵커) 기준 매칭. 필터가 걸렸으면 슬라이스 전 전체를 매칭해야
+    // 필터 통과분을 정확히 셀 수 있고, 필터가 없으면 화면 표시분만 매칭해도 된다.
+    const 도로명_맵 = new Map(
+      단지_집계.map((d) => [`${d.시군구_코드}|${d.단지명}`, d.도로명 ?? null]),
+    );
+    const 분류_필터 = 옵션.단지분류_그룹 && 옵션.단지분류_그룹 !== "전체"
+      ? 옵션.단지분류_그룹
+      : null;
+    const 규모_필터 = 옵션.세대수_규모 ?? null;
+    const kapt_필터_있음 = 분류_필터 != null || 규모_필터 != null;
+
+    const kapt_매칭 = async (대상: 단지_추천_행[]) => {
+      // 대상 단지들의 시군구 매칭키만 로드
+      const 키들 = [...new Set(대상.map((r) => 시군구_매칭키(r.시군구명)))];
+      if (키들.length === 0) return;
+      const kapt행 = await DB.select({
+        시군구: 공동주택_테이블.시군구,
+        도로명주소: 공동주택_테이블.도로명주소,
+        지번: 공동주택_테이블.지번,
+        단지분류: 공동주택_테이블.단지분류,
+        세대수: 공동주택_테이블.세대수,
+      })
+        .from(공동주택_테이블)
+        .where(inArray(공동주택_테이블.시군구, 키들));
+      // 시군구키별 버킷 (정규화 도로명주소 미리 계산)
+      const 버킷 = new Map<
+        string,
+        Array<{ 주소norm: string; 지번: string | null; 분류: string | null; 세대수: number | null }>
+      >();
+      for (const k of kapt행) {
+        const sgg = k.시군구 ?? "";
+        if (!버킷.has(sgg)) 버킷.set(sgg, []);
+        버킷.get(sgg)!.push({
+          주소norm: 도로명_정규화(k.도로명주소),
+          지번: k.지번,
+          분류: k.단지분류,
+          세대수: k.세대수,
+        });
+      }
+      for (const r of 대상) {
+        const 버 = 버킷.get(시군구_매칭키(r.시군구명));
+        if (!버) continue;
+        const 도로명 = 도로명_맵.get(r.단지_키) ?? null;
+        const 도로norm = 도로명_정규화(도로명);
+        const m =
+          (도로norm && 버.find((k) => k.주소norm.endsWith(도로norm))) ||
+          (r.지번 && 버.find((k) => k.지번 === r.지번)) ||
+          null;
+        if (m) {
+          r.단지분류 = m.분류;
+          r.세대수 = m.세대수;
+        }
+      }
+    };
+
     // null은 항상 맨 뒤로: 오름차순이면 +Infinity, 내림차순이면 -Infinity로 치환
     const 널뒤 = (v: number | null, 오름차순: boolean): number =>
       v ?? (오름차순 ? Infinity : -Infinity);
+
+    if (kapt_필터_있음) {
+      await kapt_매칭(행들);
+      // 필터 적용 (미매칭=null → 조건 확인 불가 → 제외)
+      const 통과 = 행들.filter((r) => {
+        if (분류_필터 && 단지분류_그룹(r.단지분류) !== 분류_필터) return false;
+        if (규모_필터 && 세대수_규모(r.세대수) !== 규모_필터) return false;
+        return true;
+      });
+      행들.length = 0;
+      행들.push(...통과);
+    }
 
     const 정렬 = 옵션.정렬 ?? "추천순";
     switch (정렬) {
@@ -456,6 +538,9 @@ export class 단지_추천_유스케이스 {
         행들.sort((a, b) => b.종합_점수 - a.종합_점수);
     }
 
-    return 행들.slice(0, 옵션.최대 ?? 30);
+    const 결과행들 = 행들.slice(0, 옵션.최대 ?? 30);
+    // 필터가 없으면 전체 매칭은 낭비 → 화면 표시분(슬라이스)만 K-apt 매칭
+    if (!kapt_필터_있음) await kapt_매칭(결과행들);
+    return 결과행들;
   }
 }

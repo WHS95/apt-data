@@ -41,6 +41,16 @@ const 평형_라벨 = (m2: number): string => {
   return `${Math.round(m2)}㎡·${평}평`;
 };
 
+// 단지분류 배지: 아파트는 기본이라 생략(노이즈↓), 주상복합/연립/도시형만 강조
+const 분류_배지 = (분류: string | null): string | null => {
+  if (!분류) return null;
+  if (분류.includes("주상복합")) return "주상복합";
+  if (분류.includes("도시형")) return "도시형";
+  if (분류.includes("연립")) return "연립";
+  if (분류.includes("다세대")) return "다세대";
+  return null; // 아파트
+};
+
 // 갭(만원) → "N억 N천" 압축 표기 (음수는 깡통, 3천만도 "0억"으로 뭉개지지 않게)
 const 갭_라벨 = (만원: number): string => {
   const 음수 = 만원 < 0;
@@ -93,6 +103,11 @@ export const 단지_추천_행 = ({ 단지, 순위 }: 속성) => {
           <div className="text-[13px] font-extrabold tracking-tight truncate leading-tight min-w-0">
             {단지.단지명}
           </div>
+          {분류_배지(단지.단지분류) && (
+            <span className="flex-shrink-0 text-[9px] font-extrabold px-1 py-0.5 rounded bg-[var(--color-brand-soft)] text-[var(--color-brand)] leading-none">
+              {분류_배지(단지.단지분류)}
+            </span>
+          )}
           {단지.직거래_비율 >= 10 || 단지.이상치_건수 >= 3 ? (
             <span
               title={`직거래 ${단지.직거래_비율}% · 이상치 ${단지.이상치_건수}건`}
@@ -104,7 +119,9 @@ export const 단지_추천_행 = ({ 단지, 순위 }: 속성) => {
         </div>
         <div className="text-[10px] text-[var(--color-ink-3)] mt-0.5 font-medium truncate">
           {단지.시군구명} · {평형_라벨(단지.평균_면적_제곱미터)}
+          {단지.세대수 != null && ` · ${단지.세대수.toLocaleString("ko-KR")}세대`}
           {단지.건축_연도 && ` · ${단지.건축_연도}년`}
+          {단지.지번 && ` · 지번 ${단지.지번}`}
         </div>
       </div>
 

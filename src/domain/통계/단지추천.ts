@@ -10,6 +10,9 @@ export interface 단지_추천_행 {
   물건_유형: 물건_유형_코드;
   평균_면적_제곱미터: number;
   건축_연도: number | null;
+  지번: string | null;
+  단지분류: string | null; // K-apt 매칭: 아파트/주상복합/연립주택/도시형 생활주택… (미매칭 null)
+  세대수: number | null; // K-apt 총 세대수 (미매칭 null)
 
   현재_평균가_만원: number | null;
   최신_거래가_만원: number | null;
