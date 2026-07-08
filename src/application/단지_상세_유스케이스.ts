@@ -1,12 +1,14 @@
-import { and, asc, eq, gte, ilike, sql } from "drizzle-orm";
+import { and, asc, eq, gte, ilike, or, sql } from "drizzle-orm";
 import { DB } from "../infrastructure/persistence/접속";
 import {
+  공동주택_테이블,
   시군구_테이블,
   시도_테이블,
   실거래_테이블,
 } from "../infrastructure/persistence/스키마";
 import { 면적_구간 } from "../domain/공통/코드";
 import type { 면적_구간_코드 } from "../domain/공통/코드";
+import { 도로명_정규화, 시군구_매칭키 } from "../domain/공통/kapt_매칭";
 
 export interface 단지_상세_옵션 {
   시군구_코드: string;
@@ -36,9 +38,18 @@ export interface 단지_상세_결과 {
     시도명: string;
     시군구명: string;
     건축_연도: number | null;
+    단지분류: string | null; // K-apt 단지분류(아파트/주상복합/연립…). 미매칭 null
+    세대수: number | null; // K-apt 매칭(시군구+도로명/지번). 소형·미관리 단지는 null
+    총_동수: number | null;
+    지번: string | null; // 실거래 지번(예: "453-2")
+    본번: string | null;
+    부번: string | null;
+    도로명: string | null;
+    평형_목록: Array<{ 제곱미터: number; 평: number; 건수: number }>; // 단지가 거래된 전용면적들
     평형_옵션: Array<{ 코드: 면적_구간_코드; 라벨: string; 거래수: number }>;
-    최근_매매: { 평균_만원: number | null; 건수: number };
-    최근_전세: { 평균_만원: number | null; 건수: number };
+    // 데이터가 있는 가장 최근 월 기준(1개월 고정 아님). 월 = 그 값이 언제 것인지
+    최근_매매: { 평균_만원: number | null; 건수: number; 월: string | null };
+    최근_전세: { 평균_만원: number | null; 건수: number; 월: string | null };
     역대_최고가_만원: number | null;
     역대_최고가_월: string | null;
     전세가율: number | null;
@@ -65,7 +76,6 @@ export class 단지_상세_유스케이스 {
   async 실행(옵션: 단지_상세_옵션): Promise<단지_상세_결과 | null> {
     const 오늘 = new Date();
     const T_60개월 = 일자_뒤로(오늘, 60 * 30);
-    const T_30 = 일자_뒤로(오늘, 30);
 
     const 절들 = [
       eq(실거래_테이블.시군구_코드, 옵션.시군구_코드),
@@ -98,6 +108,8 @@ export class 단지_상세_유스케이스 {
       보증금_만원: 실거래_테이블.보증금_만원,
       월세_만원: 실거래_테이블.월세_만원,
       거래_경위: 실거래_테이블.거래_경위,
+      지번: 실거래_테이블.지번,
+      도로명: 실거래_테이블.도로명,
     })
       .from(실거래_테이블)
       .where(and(...절들))
@@ -223,11 +235,8 @@ export class 단지_상세_유스케이스 {
       }))
       .sort((a, b) => Number(a.코드) - Number(b.코드));
 
-    // 월별 평균 (매매, 전세 분리)
-    const 월별_맵 = new Map<
-      string,
-      { 매매: number[]; 전세: number[] }
-    >();
+    // 월별 평균 (매매, 전세 분리) — 라인 차트용. 캔들(평형별 총액)은 거래들로 클라에서 계산
+    const 월별_맵 = new Map<string, { 매매: number[]; 전세: number[] }>();
     for (const t of 거래들) {
       const 키 = t.계약_일자.slice(0, 7);
       if (!월별_맵.has(키)) 월별_맵.set(키, { 매매: [], 전세: [] });
@@ -258,19 +267,9 @@ export class 단지_상세_유스케이스 {
         전세_건수: v.전세.length,
       }));
 
-    // 최근 1개월
-    const 최근_매매_값 = 거래들
-      .filter((t) => t.거래_유형 === "1" && t.계약_일자 >= T_30 && t.거래_금액_만원)
-      .map((t) => t.거래_금액_만원!);
-    const 최근_전세_값 = 거래들
-      .filter(
-        (t) =>
-          t.거래_유형 === "2" &&
-          (t.월세_만원 == null || t.월세_만원 === 0) && // 순수전세만
-          t.계약_일자 >= T_30 &&
-          t.보증금_만원,
-      )
-      .map((t) => t.보증금_만원!);
+    // 최근 실거래 — 데이터가 있는 가장 최근 월(1개월 고정 아님). 월별_평균은 오름차순
+    const 매매_최근 = [...월별_평균].reverse().find((m) => m.매매_평균 != null) ?? null;
+    const 전세_최근 = [...월별_평균].reverse().find((m) => m.전세_평균 != null) ?? null;
 
     // 역대 최고가
     const 최고가_거래 = 거래들
@@ -280,23 +279,73 @@ export class 단지_상세_유스케이스 {
         null,
       );
 
-    // 최근 매매·전세 평균으로 전세가율
-    const 매매_avg =
-      최근_매매_값.length > 0
-        ? Math.round(
-            최근_매매_값.reduce((a, b) => a + b, 0) / 최근_매매_값.length,
-          )
-        : null;
-    const 전세_avg =
-      최근_전세_값.length > 0
-        ? Math.round(
-            최근_전세_값.reduce((a, b) => a + b, 0) / 최근_전세_값.length,
-          )
-        : null;
+    // 최근 실거래 매매·전세로 전세가율 (각각 가장 최근 월 기준)
+    const 매매_avg = 매매_최근?.매매_평균 ?? null;
+    const 전세_avg = 전세_최근?.전세_평균 ?? null;
     const 전세가율 =
       매매_avg && 전세_avg
         ? Math.round((전세_avg / 매매_avg) * 1000) / 10
         : null;
+
+    // 지번/도로명 대표값(최빈) + 본번·부번 파싱 + 거래된 전용면적(평형) 목록
+    const 최빈 = (값들: (string | null)[]): string | null => {
+      const c = new Map<string, number>();
+      for (const v of 값들) if (v) c.set(v, (c.get(v) ?? 0) + 1);
+      let 대표: string | null = null;
+      let 최대 = 0;
+      for (const [k, cnt] of c) if (cnt > 최대) { 대표 = k; 최대 = cnt; }
+      return 대표;
+    };
+    const 대표_지번 = 최빈(행들_원본.map((r) => r.지번));
+    const 본번 = 대표_지번 ? 대표_지번.split("-")[0] : null;
+    const 부번 = 대표_지번 ? 대표_지번.split("-")[1] ?? null : null;
+    const 대표_도로명 = 최빈(행들_원본.map((r) => r.도로명));
+    const 평형맵 = new Map<number, number>();
+    for (const r of 행들_원본) {
+      const m = Math.round(r.전용_면적_제곱미터);
+      if (m > 0) 평형맵.set(m, (평형맵.get(m) ?? 0) + 1);
+    }
+    const 평형_목록 = [...평형맵.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([제곱미터, 건수]) => ({
+        제곱미터,
+        평: Math.round(제곱미터 / 3.305785),
+        건수,
+      }));
+
+    // K-apt 매칭: 시군구키 + (도로명 끝 앵커 OR 지번 일치) — 소형·미관리 단지는 미매칭.
+    // 실거래 도로명은 100% 건물번호로 끝나므로 kapt 도로명주소의 "끝"에 붙여야
+    // 345 ⊂ 3450 류 오매칭이 없다.
+    const 도로명2 = 도로명_정규화(대표_도로명);
+    const 시군구키 = 시군구_매칭키(메타_행?.시군구명 ?? "");
+    let 단지분류: string | null = null;
+    let 세대수: number | null = null;
+    let 총_동수: number | null = null;
+    if (도로명2 || 대표_지번) {
+      const kapt = await DB.select({
+        단지분류: 공동주택_테이블.단지분류,
+        세대수: 공동주택_테이블.세대수,
+        동수: 공동주택_테이블.동수,
+      })
+        .from(공동주택_테이블)
+        .where(
+          and(
+            eq(공동주택_테이블.시군구, 시군구키),
+            or(
+              도로명2
+                ? sql`replace(${공동주택_테이블.도로명주소}, ' ', '') LIKE ${"%" + 도로명2}`
+                : undefined,
+              대표_지번 ? eq(공동주택_테이블.지번, 대표_지번) : undefined,
+            ),
+          ),
+        )
+        .limit(1);
+      if (kapt[0]) {
+        단지분류 = kapt[0].단지분류 ?? null;
+        세대수 = kapt[0].세대수 ?? null;
+        총_동수 = kapt[0].동수 ?? null;
+      }
+    }
 
     return {
       메타: {
@@ -304,9 +353,25 @@ export class 단지_상세_유스케이스 {
         시도명: 메타_행?.시도명 ?? "",
         시군구명: 메타_행?.시군구명 ?? 옵션.시군구_코드,
         건축_연도: 메타_행?.건축_연도 ?? null,
+        단지분류,
+        세대수,
+        총_동수,
+        지번: 대표_지번,
+        본번,
+        부번,
+        도로명: 대표_도로명,
+        평형_목록,
         평형_옵션,
-        최근_매매: { 평균_만원: 매매_avg, 건수: 최근_매매_값.length },
-        최근_전세: { 평균_만원: 전세_avg, 건수: 최근_전세_값.length },
+        최근_매매: {
+          평균_만원: 매매_avg,
+          건수: 매매_최근?.매매_건수 ?? 0,
+          월: 매매_최근?.년월 ?? null,
+        },
+        최근_전세: {
+          평균_만원: 전세_avg,
+          건수: 전세_최근?.전세_건수 ?? 0,
+          월: 전세_최근?.년월 ?? null,
+        },
         역대_최고가_만원: 최고가_거래?.거래_금액_만원 ?? null,
         역대_최고가_월: 최고가_거래?.계약_일자.slice(0, 7) ?? null,
         전세가율,

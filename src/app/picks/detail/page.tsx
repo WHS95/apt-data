@@ -125,7 +125,6 @@ export default async function 단지상세_페이지({
   const 거래_유형 = (p.deal ?? "전체") as "전체" | "1" | "2";
   const 평형 = (p.areaband ?? "전체") as 면적_구간_코드 | "전체";
   const 정상만 = p.cleanonly === "1";
-  const 기간_연수 = Number(p.months ?? "3");
 
   const 결과 = await new 단지_상세_유스케이스().실행({
     시군구_코드: p.sgg,
@@ -166,8 +165,14 @@ export default async function 단지상세_페이지({
               <h1 className="text-[40px] leading-tight font-extrabold tracking-[-0.025em]">
                 {메타.단지명}
               </h1>
-              <div className="text-[14px] text-[var(--color-ink-2)] mt-2 flex items-center gap-2 font-medium">
+              <div className="text-[14px] text-[var(--color-ink-2)] mt-2 flex items-center gap-2 font-medium flex-wrap">
                 <span>{메타.시도명} {메타.시군구명}</span>
+                {메타.단지분류 && (
+                  <>
+                    <span className="text-[var(--color-ink-4)]">·</span>
+                    <span className="font-bold text-[var(--color-brand)]">{메타.단지분류}</span>
+                  </>
+                )}
                 {메타.건축_연도 && (
                   <>
                     <span className="text-[var(--color-ink-4)]">·</span>
@@ -176,7 +181,44 @@ export default async function 단지상세_페이지({
                     </span>
                   </>
                 )}
+                {메타.세대수 != null && (
+                  <>
+                    <span className="text-[var(--color-ink-4)]">·</span>
+                    <span className="num font-bold">
+                      {메타.세대수.toLocaleString("ko-KR")}세대
+                      {메타.총_동수 ? ` · ${메타.총_동수}개동` : ""}
+                    </span>
+                  </>
+                )}
+                {메타.지번 && (
+                  <>
+                    <span className="text-[var(--color-ink-4)]">·</span>
+                    <span className="num" title={메타.부번 ? `본번 ${메타.본번} · 부번 ${메타.부번}` : `본번 ${메타.본번}`}>
+                      지번 {메타.지번}
+                    </span>
+                  </>
+                )}
+                {메타.도로명 && (
+                  <>
+                    <span className="text-[var(--color-ink-4)]">·</span>
+                    <span>{메타.도로명}</span>
+                  </>
+                )}
               </div>
+              {메타.평형_목록.length > 0 && (
+                <div className="text-[12px] mt-2 flex items-center gap-1.5 flex-wrap">
+                  <span className="font-bold text-[var(--color-ink-2)]">거래 평형</span>
+                  {메타.평형_목록.map((p) => (
+                    <span
+                      key={p.제곱미터}
+                      className="num px-2 py-0.5 rounded-md bg-[var(--color-bg-mute)] text-[var(--color-ink-2)] font-medium"
+                    >
+                      {p.제곱미터}㎡·{p.평}평{" "}
+                      <span className="text-[var(--color-ink-4)]">{p.건수}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <Link href="/picks" className="btn-ghost">
               ← 추천 리스트
@@ -201,21 +243,25 @@ export default async function 단지상세_페이지({
       <section className="bg-[var(--color-bg-soft)]">
         <div className="mx-auto max-w-[1240px] px-6 py-6 grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="toss-card p-5">
-            <div className="label mb-2">최근 1개월 매매</div>
+            <div className="label mb-2">최근 매매 실거래</div>
             <div>
               <만원_표시 만원={메타.최근_매매.평균_만원} 강조 />
             </div>
             <div className="text-[11px] text-[var(--color-ink-3)] num mt-1 font-medium">
-              {메타.최근_매매.건수}건
+              {메타.최근_매매.월
+                ? `${메타.최근_매매.월.replace("-", ". ")} · ${메타.최근_매매.건수}건`
+                : "거래 없음"}
             </div>
           </div>
           <div className="toss-card p-5">
-            <div className="label mb-2">최근 1개월 전세</div>
+            <div className="label mb-2">최근 전세 실거래</div>
             <div>
               <만원_표시 만원={메타.최근_전세.평균_만원} 강조 />
             </div>
             <div className="text-[11px] text-[var(--color-ink-3)] num mt-1 font-medium">
-              {메타.최근_전세.건수}건
+              {메타.최근_전세.월
+                ? `${메타.최근_전세.월.replace("-", ". ")} · ${메타.최근_전세.건수}건`
+                : "거래 없음"}
             </div>
           </div>
           <div className="toss-card p-5">
@@ -224,7 +270,7 @@ export default async function 단지상세_페이지({
               <비율_표시 값={메타.전세가율} />
             </div>
             <div className="text-[11px] text-[var(--color-ink-3)] mt-1 font-medium">
-              최근 30일 평균
+              최근 실거래 기준
             </div>
           </div>
           <div className="toss-card p-5">
@@ -239,53 +285,95 @@ export default async function 단지상세_페이지({
         </div>
       </section>
 
-      {/* 차트 — 토스부동산 스타일 */}
+      {/* 차트 + 거래내역 — 한눈에 보이게 2단 구성 */}
       <section className="mx-auto max-w-[1240px] px-6 py-8">
-        <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
-          <h2 className="text-[20px] font-extrabold tracking-tight">가격 추이</h2>
-          {/* 기간 탭 */}
-          <div className="flex items-center gap-1">
-            {[
-              { 값: "3", 라벨: "최근 3년" },
-              { 값: "1", 라벨: "최근 1년" },
-              { 값: "5", 라벨: "최근 5년" },
-              { 값: "0", 라벨: "전체 기간" },
-            ].map((옵션) => {
-              const sp = new URLSearchParams();
-              if (p.sgg) sp.set("sgg", p.sgg);
-              if (p.name) sp.set("name", p.name);
-              if (p.deal) sp.set("deal", p.deal);
-              if (p.areaband) sp.set("areaband", p.areaband);
-              if (p.cleanonly) sp.set("cleanonly", p.cleanonly);
-              sp.set("months", 옵션.값);
-              const 활성 = String(기간_연수) === 옵션.값;
-              return (
-                <Link
-                  key={옵션.값}
-                  href={`?${sp.toString()}`}
-                  className={`pill ${활성 ? "pill-active" : ""}`}
-                >
-                  {옵션.라벨}
-                </Link>
-              );
-            })}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* 좌: 가격 추이 차트 (기간은 차트 줌/팬, 집계는 월/분기 토글) */}
+          <div className="lg:col-span-7">
+            <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
+              <h2 className="text-[20px] font-extrabold tracking-tight">가격 추이</h2>
+              <span className="label">드래그·휠로 기간 조절</span>
+            </div>
+            <단지_상세_차트 결과={결과} 거래_유형={거래_유형} />
+          </div>
+
+          {/* 우: 최근 거래 내역 (스크롤) */}
+          <div className="lg:col-span-5">
+            <div className="flex items-baseline justify-between mb-4">
+              <h2 className="text-[20px] font-extrabold tracking-tight">최근 거래 내역</h2>
+              <span className="label">최신 40건</span>
+            </div>
+            <div className="toss-card overflow-y-auto max-h-[520px]">
+              <table className="w-full text-[12px]">
+                <thead className="sticky top-0 bg-[var(--color-bg)] z-10">
+                  <tr className="border-b hairline">
+                    <th className="text-left py-2.5 px-3 label">계약일</th>
+                    <th className="text-left py-2.5 px-2 label">구분</th>
+                    <th className="text-right py-2.5 px-2 label">면적</th>
+                    <th className="text-right py-2.5 px-3 label">금액</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {결과.거래들
+                    .slice(-40)
+                    .reverse()
+                    .map((t, i) => (
+                      <tr
+                        key={i}
+                        className={`border-b hairline last:border-b-0 ${t.이상치_의심 ? "bg-[var(--color-warn-soft)]/30" : ""}`}
+                        title={t.이상치_의심 ? t.의심_사유 ?? undefined : undefined}
+                      >
+                        <td className="py-2.5 px-3 num text-[var(--color-ink-2)] font-medium whitespace-nowrap">
+                          {t.계약_일자.slice(2)}
+                        </td>
+                        <td className="py-2.5 px-2 whitespace-nowrap">
+                          {t.거래_유형 === "1" ? (
+                            <span className="text-[var(--color-up)] font-bold">매매</span>
+                          ) : (
+                            <span className="text-[var(--color-down)] font-bold">전·월세</span>
+                          )}
+                          {t.거래_경위 === "직거래" && (
+                            <span className="ml-1 text-[10px] text-[var(--color-warn)] font-bold">직</span>
+                          )}
+                          {t.이상치_의심 && (
+                            <span className="ml-0.5 text-[10px] text-[var(--color-warn)]">⚠</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-2 text-right num font-medium whitespace-nowrap">
+                          {t.전용_면적_제곱미터.toFixed(1)}㎡
+                        </td>
+                        <td className="py-2.5 px-3 text-right num font-bold whitespace-nowrap">
+                          {t.거래_유형 === "1" ? (
+                            <만원_표시 만원={t.거래_금액_만원} />
+                          ) : (
+                            <span>
+                              보 <만원_표시 만원={t.보증금_만원} />
+                              {t.월세_만원 ? (
+                                <>
+                                  <span className="text-[var(--color-ink-3)]">/월</span>
+                                  <만원_표시 만원={t.월세_만원} />
+                                </>
+                              ) : null}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-        <단지_상세_차트
-          결과={결과}
-          거래_유형={거래_유형}
-          기간_연수={기간_연수}
-        />
       </section>
 
       {/* 거래 신뢰도 — 직거래 / 이상치 안내 */}
-      <section className="mx-auto max-w-[1240px] px-6 pb-6">
+      <section className="mx-auto max-w-[1240px] px-6 pb-12">
         <div className="toss-card p-6">
           <div className="flex items-baseline justify-between mb-3">
             <h2 className="text-[16px] font-extrabold tracking-tight">거래 신뢰도</h2>
             <span className="label">중개·직거래 분포 + 가격 이상치</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <div className="label">중개거래</div>
               <div className="text-[22px] font-extrabold num mt-1">
@@ -320,95 +408,6 @@ export default async function 단지상세_페이지({
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* 최근 거래 내역 */}
-      <section className="mx-auto max-w-[1240px] px-6 pb-12">
-        <div className="flex items-baseline justify-between mb-4">
-          <h2 className="text-[20px] font-extrabold tracking-tight">최근 거래 내역</h2>
-          <span className="label">최신 40건 · 의심 거래는 표시</span>
-        </div>
-        <div className="toss-card overflow-x-auto">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="border-b hairline">
-                <th className="text-left py-3 px-4 label">계약일</th>
-                <th className="text-left py-3 px-4 label">구분</th>
-                <th className="text-right py-3 px-4 label">면적</th>
-                <th className="text-right py-3 px-4 label">층</th>
-                <th className="text-right py-3 px-4 label">금액</th>
-                <th className="text-left py-3 px-4 label">경위</th>
-                <th className="text-left py-3 px-4 label">의심</th>
-              </tr>
-            </thead>
-            <tbody>
-              {결과.거래들
-                .slice(-40)
-                .reverse()
-                .map((t, i) => (
-                  <tr
-                    key={i}
-                    className={`border-b hairline last:border-b-0 ${t.이상치_의심 ? "bg-[var(--color-warn-soft)]/30" : ""}`}
-                  >
-                    <td className="py-3 px-4 num text-[var(--color-ink-2)] font-medium">
-                      {t.계약_일자}
-                    </td>
-                    <td className="py-3 px-4">
-                      {t.거래_유형 === "1" ? (
-                        <span className="text-[var(--color-up)] font-bold">매매</span>
-                      ) : (
-                        <span className="text-[var(--color-down)] font-bold">전·월세</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right num font-medium">
-                      {t.전용_면적_제곱미터.toFixed(1)}㎡
-                    </td>
-                    <td className="py-3 px-4 text-right num text-[var(--color-ink-3)] font-medium">
-                      {t.층 ?? "—"}
-                    </td>
-                    <td className="py-3 px-4 text-right num font-bold">
-                      {t.거래_유형 === "1" ? (
-                        <만원_표시 만원={t.거래_금액_만원} />
-                      ) : (
-                        <span>
-                          보 <만원_표시 만원={t.보증금_만원} />
-                          {t.월세_만원 ? (
-                            <>
-                              <span className="text-[var(--color-ink-3)]"> / 월 </span>
-                              <만원_표시 만원={t.월세_만원} />
-                            </>
-                          ) : null}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      {t.거래_경위 === "직거래" ? (
-                        <span className="delta-pill delta-pill-flat text-[var(--color-warn)] bg-[var(--color-warn-soft)]">
-                          직거래
-                        </span>
-                      ) : t.거래_경위 === "중개거래" ? (
-                        <span className="text-[11px] text-[var(--color-ink-3)] font-medium">중개</span>
-                      ) : (
-                        <span className="text-[11px] text-[var(--color-ink-4)]">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      {t.이상치_의심 ? (
-                        <span
-                          className="text-[11px] text-[var(--color-warn)] font-bold cursor-help"
-                          title={t.의심_사유 ?? undefined}
-                        >
-                          ⚠ {t.의심_사유?.slice(0, 16)}…
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-[var(--color-ink-4)]">정상</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
         </div>
       </section>
     </>
