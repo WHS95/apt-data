@@ -15,7 +15,11 @@
     "수집:전체": "tsx --env-file=.env src/infrastructure/molit/수집_실행.ts --mode full",
     "수집:증분": "tsx --env-file=.env src/infrastructure/molit/수집_실행.ts --mode incremental",
     "수집:2년": "tsx --env-file=.env src/infrastructure/molit/수집_실행.ts --mode full --years 2",
-    "스케줄러": "tsx --env-file=.env src/infrastructure/molit/스케줄러_실행.ts"
+    "스케줄러": "tsx --env-file=.env src/infrastructure/molit/스케줄러_실행.ts",
+    "카드:데이터": "python3 src/studio/emit_data.py",
+    "카드:빌드": "node src/studio/build.mjs",
+    "e2e": "playwright test",
+    "e2e:report": "playwright show-report"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -33,6 +37,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.0.0-beta.7",
     "@types/node": "^22.10.2",
     "@types/papaparse": "^5.3.15",

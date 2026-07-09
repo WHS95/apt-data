@@ -1,0 +1,141 @@
+[
+  {
+    "id": "F5_최저가",
+    "template": "hero",
+    "type": "data",
+    "eyebrow": "서울 아파트 매매 · 24평 최저가",
+    "kicker": "‘서울 = 최소 10억’은 편견",
+    "valueRef": "cheapest24.0.median",
+    "unit": "억",
+    "headlineTpl": "서울에도 3억대 방3<br/>아파트가 있다?",
+    "subTpl": "24평(방3) 단지 중위값 · {{cheapest24.0.gu}} {{cheapest24.0.name}}"
+  },
+  {
+    "id": "B1_구랭킹",
+    "template": "ranking",
+    "type": "data",
+    "eyebrow": "서울 25개 구 · 24평(방3) 시세",
+    "headlineTpl": "같은 24평인데,<br/>우리 동네는 서울에서 몇 위?",
+    "source": "gu24",
+    "topN": 4,
+    "bottomN": 4,
+    "highlightMin": true
+  },
+  {
+    "id": "H1_청약",
+    "template": "concept",
+    "type": "policy",
+    "verifyBeforePublish": true,
+    "eyebrow": "신혼·초보 실전제도 · 청약",
+    "headlineTpl": "‘청약’이 대체 뭐길래<br/>다들 통장을 들까?",
+    "paras": [
+      "청약 = 새로 짓는 아파트를 ‘분양가’(대개 시세보다 쌈)에 살 기회를 추첨·점수로 받는 것.",
+      "청약통장이 응모권. 신혼·무주택일수록 유리한 칸이 따로 있어요."
+    ]
+  },
+  {
+    "id": "P6_6억대_20평대",
+    "template": "picks",
+    "type": "data",
+    "theme": "light",
+    "calloutTpl": "전용 49~66㎡ · 호가가 아니라 <b>실제 계약된 가격</b>",
+    "eyebrow": "서울 20평대 · 6억대 실거래",
+    "headlineTpl": "6억대로 갈 수 있는<br/>서울 20평대는 어디일까?",
+    "source": "band20.6",
+    "captionTpl": "서울에서 6억대에 실제로 계약된 20평대, 가장 최근 세 건이에요({{band20.6.0.date}} 기준).\n{{band20.6.0.name}}({{band20.6.0.gu}}) {{band20.6.0.price}} · {{band20.6.1.name}}({{band20.6.1.gu}}) {{band20.6.1.price}} · {{band20.6.2.name}}({{band20.6.2.gu}}) {{band20.6.2.price}}.\n호가가 아니라 등록된 실거래가예요. 예산 6억대라면 저장해두고 비교해보세요 📌",
+    "cta": "프로필 링크 → '예산매물'에 예산을 넣으면 지금 갈 수 있는 단지가 다 떠요.",
+    "hashtags": [
+      "#내집마련",
+      "#6억",
+      "#서울아파트",
+      "#20평대",
+      "#양천구",
+      "#노원구",
+      "#성북구",
+      "#실거래가",
+      "#신혼집",
+      "#첫집"
+    ]
+  },
+  {
+    "id": "P7_7억대_20평대",
+    "template": "picks",
+    "type": "data",
+    "theme": "light",
+    "calloutTpl": "전용 49~66㎡ · 호가가 아니라 <b>실제 계약된 가격</b>",
+    "eyebrow": "서울 20평대 · 7억대 실거래",
+    "headlineTpl": "7억대라면?<br/>서울 20평대 최신 거래 세 곳",
+    "source": "band20.7",
+    "captionTpl": "\"6억대에서 1억 올리면 뭐가 달라질까?\" — 7억대로 계약된 서울 20평대 최신 세 곳이에요.\n{{band20.7.0.name}}({{band20.7.0.gu}}) {{band20.7.0.price}} · {{band20.7.1.name}}({{band20.7.1.gu}}) {{band20.7.1.price}} · {{band20.7.2.name}}({{band20.7.2.gu}}) {{band20.7.2.price}}.\n가장 최근 계약은 {{band20.7.0.date}}. 지금 7억대 실수요가 움직이는 동네, 저장 📌",
+    "cta": "프로필 링크 → '단지추이'에서 단지 이름을 검색하면 이 가격이 오른 건지 내린 건지 보여요.",
+    "hashtags": [
+      "#내집마련",
+      "#7억",
+      "#서울아파트",
+      "#20평대",
+      "#구로구",
+      "#성북구",
+      "#실거래가",
+      "#신혼집",
+      "#첫집",
+      "#부동산"
+    ]
+  },
+  {
+    "id": "P8_8억대_20평대",
+    "template": "picks",
+    "type": "data",
+    "theme": "light",
+    "calloutTpl": "전용 49~66㎡ · 호가가 아니라 <b>실제 계약된 가격</b>",
+    "eyebrow": "서울 20평대 · 8억대 실거래",
+    "headlineTpl": "8억대 서울 20평대,<br/>가장 최근 거래는 여기",
+    "source": "band20.8",
+    "captionTpl": "8억대면 서울 어디까지 갈 수 있을까요? 가장 최근 실거래 기준 세 곳이에요({{band20.8.0.date}} 기준).\n{{band20.8.0.name}}({{band20.8.0.gu}}) {{band20.8.0.price}} · {{band20.8.1.name}}({{band20.8.1.gu}}) {{band20.8.1.price}} · {{band20.8.2.name}}({{band20.8.2.gu}}) {{band20.8.2.price}}.\n전부 호가 아닌 실거래 등록가예요. 예산 로드맵에 넣어두세요 📌",
+    "cta": "프로필 링크 → '서울지도'에서 내 예산으로 열리는 구를 색으로 확인해보세요.",
+    "hashtags": [
+      "#내집마련",
+      "#8억",
+      "#서울아파트",
+      "#20평대",
+      "#종로구",
+      "#양천구",
+      "#강서구",
+      "#실거래가",
+      "#신혼집",
+      "#첫집"
+    ]
+  },
+  {
+    "id": "P6_6억대_20평대_릴스",
+    "template": "picks",
+    "type": "data",
+    "theme": "light",
+    "calloutTpl": "전용 49~66㎡ · 호가가 아니라 <b>실제 계약된 가격</b>",
+    "eyebrow": "서울 20평대 · 6억대 실거래",
+    "headlineTpl": "6억대로 갈 수 있는<br/>서울 20평대는 어디일까?",
+    "source": "band20.6",
+    "format": "reel"
+  },
+  {
+    "id": "P7_7억대_20평대_릴스",
+    "template": "picks",
+    "type": "data",
+    "theme": "light",
+    "calloutTpl": "전용 49~66㎡ · 호가가 아니라 <b>실제 계약된 가격</b>",
+    "eyebrow": "서울 20평대 · 7억대 실거래",
+    "headlineTpl": "7억대라면?<br/>서울 20평대 최신 거래 세 곳",
+    "source": "band20.7",
+    "format": "reel"
+  },
+  {
+    "id": "P8_8억대_20평대_릴스",
+    "template": "picks",
+    "type": "data",
+    "theme": "light",
+    "calloutTpl": "전용 49~66㎡ · 호가가 아니라 <b>실제 계약된 가격</b>",
+    "eyebrow": "서울 20평대 · 8억대 실거래",
+    "headlineTpl": "8억대 서울 20평대,<br/>가장 최근 거래는 여기",
+    "source": "band20.8",
+    "format": "reel"
+  }
+]

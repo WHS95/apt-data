@@ -26,6 +26,7 @@ export default async function 관리자_페이지() {
         <div className="mx-auto max-w-[1200px] px-6 py-3 flex items-center gap-2">
           <Link href="/admin" className="pill pill-active">현황 / 설정</Link>
           <Link href="/admin/raw" className="pill">로우 데이터</Link>
+          <Link href="/admin/cards" className="pill">카드 스튜디오</Link>
         </div>
       </div>
       <관리자_상태패널 초기_현황={현황} />

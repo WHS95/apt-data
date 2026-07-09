@@ -4,20 +4,23 @@ import {
   date,
   index,
   integer,
-  pgTable,
+  pgSchema,
   real,
   text,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-export const 시도_테이블 = pgTable("sido", {
+/** 부동산 전용 스키마 — 같은 Supabase 프로젝트의 크루 앱(public)과 격리 */
+export const apt = pgSchema("apt");
+
+export const 시도_테이블 = apt.table("sido", {
   코드: text("code").primaryKey(),
   이름: text("name").notNull(),
   생성_시각: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const 시군구_테이블 = pgTable(
+export const 시군구_테이블 = apt.table(
   "sigungu",
   {
     코드: text("code").primaryKey(),
@@ -31,7 +34,7 @@ export const 시군구_테이블 = pgTable(
   }),
 );
 
-export const 읍면동_테이블 = pgTable(
+export const 읍면동_테이블 = apt.table(
   "emd",
   {
     코드: text("code").primaryKey(),
@@ -45,7 +48,7 @@ export const 읍면동_테이블 = pgTable(
   }),
 );
 
-export const 단지_테이블 = pgTable(
+export const 단지_테이블 = apt.table(
   "danji",
   {
     코드: text("code").primaryKey(),
@@ -63,7 +66,7 @@ export const 단지_테이블 = pgTable(
   }),
 );
 
-export const 실거래_테이블 = pgTable(
+export const 실거래_테이블 = apt.table(
   "transaction",
   {
     ID: text("id").primaryKey(),
@@ -116,14 +119,14 @@ export const 실거래_테이블 = pgTable(
   }),
 );
 
-export const 수집_상태_테이블 = pgTable("collection_state", {
+export const 수집_상태_테이블 = apt.table("collection_state", {
   키: text("key").primaryKey(),
   마지막_수집일: date("last_collected").notNull(),
   갱신_시각: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // K-apt 공동주택 기본정보(주 1회 엑셀 적재). 실거래와 시군구+도로명/지번으로 매칭.
-export const 공동주택_테이블 = pgTable(
+export const 공동주택_테이블 = apt.table(
   "kapt_danji",
   {
     단지코드: text("code").primaryKey(),
@@ -143,7 +146,7 @@ export const 공동주택_테이블 = pgTable(
   }),
 );
 
-export const 수집_설정_테이블 = pgTable("scrape_config", {
+export const 수집_설정_테이블 = apt.table("scrape_config", {
   키: text("key").primaryKey().default("global"),
   활성: boolean("active").default(true).notNull(),
   요청_딜레이_MS: integer("delay_ms").default(5000).notNull(),
@@ -154,7 +157,7 @@ export const 수집_설정_테이블 = pgTable("scrape_config", {
   갱신_시각: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const 수집_기록_테이블 = pgTable(
+export const 수집_기록_테이블 = apt.table(
   "scrape_run",
   {
     ID: text("id").primaryKey(),

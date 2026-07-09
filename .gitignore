@@ -20,3 +20,19 @@ skills-lock.json
 
 # 참고용 책 페이지 사진(용량·저작권) — 분석 .md 만 커밋
 참고자료/2026부동산트랜드/
+
+# 카드 스튜디오 생성물
+/public/studio/
+/참고자료/마케팅/카드_out/
+
+# playwright
+/test-results/
+/playwright-report/
+
+# 원본 소스데이터(DB에 적재 완료 — repo 불필요, 로컬 보관)
+참고자료/*.csv
+참고자료/*.xlsx
+
+# 로컬 전용 — 공개 저장소 제외(전략문서·MCP 설정)
+참고자료/
+.mcp.json

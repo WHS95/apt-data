@@ -1,0 +1,39 @@
+[
+  {
+    "id": "BAD_오버플로우",
+    "template": "ranking",
+    "type": "data",
+    "eyebrow": "오버플로우 테스트",
+    "headlineTpl": "행이 너무 많으면?",
+    "source": "gu24",
+    "topN": 10,
+    "bottomN": 10,
+    "highlightMin": true
+  },
+  {
+    "id": "BAD_prose조작",
+    "template": "concept",
+    "type": "data",
+    "eyebrow": "prose 인과주장 테스트 (C4 재현)",
+    "headlineTpl": "싼 데는 이유가 있다?",
+    "paras": ["정릉풍림이 싼 건 지하철에서 멀기 때문이에요."]
+  },
+  {
+    "id": "BAD_손숫자",
+    "template": "hero",
+    "type": "data",
+    "eyebrow": "손 숫자 테스트",
+    "valueRef": "seoul.m24",
+    "unit": "억",
+    "headlineTpl": "6억이면 서울 3곳<br/>갈 수 있어요",
+    "subTpl": "동네 수는 데이터가 정해야 함"
+  },
+  {
+    "id": "BAD_정책미검수",
+    "template": "concept",
+    "type": "policy",
+    "eyebrow": "정책 미검수 테스트",
+    "headlineTpl": "취득세, 살 때 내는 세금",
+    "paras": ["세율은 조건마다 달라요."]
+  }
+]
