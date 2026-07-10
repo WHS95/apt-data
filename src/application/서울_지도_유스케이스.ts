@@ -62,7 +62,7 @@ export class 서울_지도_유스케이스 {
     const 전세평당_중위 = sql<number>`percentile_cont(0.5) WITHIN GROUP (ORDER BY ${보증금}::real / (${면적} / 3.305785))::int`;
 
     // 1) 매매: 시군구×버킷×창 평당 중위 + 건수 (현재+직전창)
-    const 매매행들 = await DB.select({
+    const 매매행들_P = DB.select({
       시군구_코드: 실거래_테이블.시군구_코드,
       버킷: 버킷식,
       창: 창식,
@@ -86,7 +86,7 @@ export class 서울_지도_유스케이스 {
       .groupBy(sql`1`, sql`2`, sql`3`);
 
     // 2) 순수전세(월세=0): 시군구×버킷 평당 중위 + 건수 (현재창)
-    const 전세행들 = await DB.select({
+    const 전세행들_P = DB.select({
       시군구_코드: 실거래_테이블.시군구_코드,
       버킷: 버킷식,
       평당: 전세평당_중위,
@@ -109,7 +109,7 @@ export class 서울_지도_유스케이스 {
       .groupBy(실거래_테이블.시군구_코드, 버킷식);
 
     // 3) 구 요약(현재창): 시군구명, 국민평형(60~85㎡) 총액 중위, 거래단지수, 원건수
-    const 요약행들 = await DB.select({
+    const 요약행들_P = DB.select({
       시군구_코드: 실거래_테이블.시군구_코드,
       시군구명: 시군구_테이블.이름,
       국민총액: sql<number | null>`percentile_cont(0.5) WITHIN GROUP (ORDER BY ${금액}) FILTER (WHERE ${면적} > 60 AND ${면적} <= 85)::int`,
@@ -131,7 +131,7 @@ export class 서울_지도_유스케이스 {
       .groupBy(실거래_테이블.시군구_코드, 시군구_테이블.이름);
 
     // 4) YoY: 1년 전 동기 완결창 매매 건수 (시군구별)
-    const YoY행들 = await DB.select({
+    const YoY행들_P = DB.select({
       시군구_코드: 실거래_테이블.시군구_코드,
       건수: sql<number>`count(*)::int`,
     })
@@ -149,7 +149,7 @@ export class 서울_지도_유스케이스 {
       .groupBy(실거래_테이블.시군구_코드);
 
     // 데이터 최소일: YoY/폴백 창이 데이터 범위 안에 완전히 들어올 때만 유효(잘린 창=왜곡)
-    const 최소일행 = await DB.select({
+    const 최소일행_P = DB.select({
       최소일: sql<string>`min(${실거래_테이블.계약_일자})`,
     })
       .from(실거래_테이블)
@@ -159,6 +159,15 @@ export class 서울_지도_유스케이스 {
           eq(실거래_테이블.물건_유형, "A"),
         ),
       );
+
+    // 5개 독립 쿼리 병렬 실행 (순차 await → Promise.all: 지연=합→최대)
+    const [매매행들, 전세행들, 요약행들, YoY행들, 최소일행] = await Promise.all([
+      매매행들_P,
+      전세행들_P,
+      요약행들_P,
+      YoY행들_P,
+      최소일행_P,
+    ]);
     const data_min = 최소일행[0]?.최소일
       ? new Date(최소일행[0].최소일)
       : new Date(0);

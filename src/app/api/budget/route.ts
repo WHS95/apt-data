@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { 예산별_매물분포_유스케이스 } from "../../../application/예산별_매물분포_유스케이스";
 import type { 물건_유형_코드 } from "../../../domain/공통/코드";
+import { 실거래_캐시 } from "../../../infrastructure/캐시";
 
 export const dynamic = "force-dynamic";
+
+const 캐시_예산 = 실거래_캐시(
+  "budget",
+  (옵션: Parameters<예산별_매물분포_유스케이스["실행"]>[0]) =>
+    new 예산별_매물분포_유스케이스().실행(옵션),
+);
 
 export async function GET(요청: Request) {
   const url = new URL(요청.url);
@@ -11,8 +18,7 @@ export async function GET(요청: Request) {
   const 시작 = url.searchParams.get("시작") ?? "2025-01-01";
   const 종료 = url.searchParams.get("종료") ?? new Date().toISOString().slice(0, 10);
 
-  const 유스케이스 = new 예산별_매물분포_유스케이스();
-  const 결과 = await 유스케이스.실행({
+  const 결과 = await 캐시_예산({
     예산_만원,
     허용_초과율: Number(url.searchParams.get("초과율") ?? "0.05"),
     물건_유형: 물건,

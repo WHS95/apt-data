@@ -1,7 +1,13 @@
 import { 서울_지도_유스케이스 } from "../../application/서울_지도_유스케이스";
 import { 서울_지도 } from "../../presentation/components/서울_지도";
+import { 실거래_캐시 } from "../../infrastructure/캐시";
 
 export const dynamic = "force-dynamic";
+
+const 캐시_지도 = 실거래_캐시(
+  "seoul-map",
+  (옵션: { 기간_개월?: number }) => new 서울_지도_유스케이스().실행(옵션),
+);
 
 export default async function 서울지도_페이지({
   searchParams,
@@ -15,8 +21,7 @@ export default async function 서울지도_페이지({
       ? p.metric
       : "매매가";
 
-  const 유스 = new 서울_지도_유스케이스();
-  const 지표들 = await 유스.실행({ 기간_개월 }).catch(() => []);
+  const 지표들 = await 캐시_지도({ 기간_개월 }).catch(() => []);
 
   const 시작 = new Date();
   시작.setMonth(시작.getMonth() - 기간_개월);

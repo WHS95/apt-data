@@ -12,8 +12,15 @@ import { 단지_추천_리스트 } from "../../presentation/components/단지_�
 import { 컨테이너 } from "../../infrastructure/di/컨테이너";
 import type { 물건_유형_코드 } from "../../domain/공통/코드";
 import type { 추천_카테고리 } from "../../domain/통계/단지추천";
+import { 실거래_캐시 } from "../../infrastructure/캐시";
 
 export const dynamic = "force-dynamic";
+
+// 배치 수집 데이터 → 필터 조합별 결과를 1시간 캐시(재요청 즉답). 넘긴 옵션이 캐시 키.
+const 캐시_추천 = 실거래_캐시(
+  "picks-추천",
+  (옵션: 단지_추천_옵션) => new 단지_추천_유스케이스().실행(옵션),
+);
 
 // 무한 스크롤 상한: 추천은 랭킹 상위가 핵심이라 상위 N개만 프리로드하고
 // 클라이언트에서 30개씩 점진 노출한다. 전체 매칭은 필터에 따라 수만 개까지 가므로
@@ -178,8 +185,7 @@ export default async function 단지추천_페이지({
     .map((s) => s.trim())
     .filter((s) => s && s !== "전체" && /^\d+$/.test(s));
 
-  const 단지들 = await new 단지_추천_유스케이스()
-    .실행({
+  const 단지들 = await 캐시_추천({
       시도_코드_목록,
       시군구_코드_목록:
         시군구_필터_표시 && 선택_시군구_코드들.length > 0
