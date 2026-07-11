@@ -1,8 +1,9 @@
 node_modules
 .next
-out
-build
-dist
+# 빌드 산출물은 루트만 무시(앵커) — src/app/admin/cards/build 같은 앱 경로 오매칭 방지
+/out
+/build
+/dist
 *.tsbuildinfo
 
 .env
