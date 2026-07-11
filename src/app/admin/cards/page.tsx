@@ -3,12 +3,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { 페이지_제목 } from "../../../presentation/components/페이지_제목";
 import { 카드_스튜디오_패널 } from "../../../presentation/components/카드_스튜디오_패널";
+import { redirect } from "next/navigation";
+import { 관리자_인증됨 } from "../../../infrastructure/관리자_인증";
 
 export const dynamic = "force-dynamic";
 
 type 스펙 = { id: string; template: string; type?: string; headlineTpl?: string };
 
-export default function 카드_스튜디오_페이지() {
+export default async function 카드_스튜디오_페이지() {
+  if (!(await 관리자_인증됨())) redirect("/admin/login");
   const specs = JSON.parse(
     readFileSync(join(process.cwd(), "src/studio/cards.json"), "utf8"),
   ) as 스펙[];

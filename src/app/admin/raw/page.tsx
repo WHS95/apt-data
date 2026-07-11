@@ -8,6 +8,8 @@ import type {
   면적_구간_코드,
 } from "../../../domain/공통/코드";
 import { 거래_유형, 물건_유형 } from "../../../domain/공통/코드";
+import { redirect } from "next/navigation";
+import { 관리자_인증됨 } from "../../../infrastructure/관리자_인증";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +73,7 @@ export default async function 로우_데이터_페이지({
     onlybroker?: string;
   }>;
 }) {
+  if (!(await 관리자_인증됨())) redirect("/admin/login");
   const p = await searchParams;
   const 시도 = p.sido ?? "전체";
   const 물건 = p.type ?? "전체";
