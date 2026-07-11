@@ -13,6 +13,7 @@ import { 컨테이너 } from "../../infrastructure/di/컨테이너";
 import type { 물건_유형_코드 } from "../../domain/공통/코드";
 import type { 추천_카테고리 } from "../../domain/통계/단지추천";
 import { 실거래_캐시 } from "../../infrastructure/캐시";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +23,59 @@ const 캐시_추천 = 실거래_캐시(
   (옵션: 단지_추천_옵션) => new 단지_추천_유스케이스().실행(옵션),
 );
 
+// 목록은 무거운 SSR(수십 행) → Suspense로 분리 스트리밍. 셸(헤더·필터)이 먼저 흐르고
+// 목록은 데이터 준비되면 스트림된다. TTFB(셸)가 데이터 대기와 분리돼 체감이 크게 빨라진다.
+function 리스트_스켈레톤() {
+  return (
+    <section className="mx-auto w-full px-6 py-4">
+      <div className="toss-card overflow-hidden animate-pulse">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-[64px] border-b hairline bg-[var(--color-ink-1)]/5"
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+async function 추천_결과({
+  옵션,
+  최소_거래,
+  목록키,
+}: {
+  옵션: 단지_추천_옵션;
+  최소_거래: number;
+  목록키: string;
+}) {
+  const 단지들 = await 캐시_추천(옵션).catch(() => []);
+  const 잘림 = 단지들.length > 표시_상한;
+  const 표시_목록 = 단지들.slice(0, 표시_상한);
+  return (
+    <section className="mx-auto w-full px-6 py-4">
+      <div className="mb-2 text-[12px] font-medium text-[var(--color-ink-3)]">
+        {표시_목록.length.toLocaleString("ko-KR")}개{잘림 ? "+" : ""} · 최소 거래{" "}
+        {최소_거래}건
+      </div>
+      {표시_목록.length === 0 ? (
+        <div className="toss-card p-12 text-center text-[var(--color-ink-3)]">
+          조건에 맞는 단지가 없습니다. 필터를 완화해보세요.
+        </div>
+      ) : (
+        <div className="toss-card overflow-hidden">
+          <단지_추천_헤더 />
+          <단지_추천_리스트 key={목록키} 행들={표시_목록} 잘림={잘림} />
+        </div>
+      )}
+    </section>
+  );
+}
+
 // 무한 스크롤 상한: 추천은 랭킹 상위가 핵심이라 상위 N개만 프리로드하고
 // 클라이언트에서 30개씩 점진 노출한다. 전체 매칭은 필터에 따라 수만 개까지 가므로
 // 캡을 두어 페이로드/DOM 을 제한하고, 잘렸을 땐 안내로 정직하게 표시한다.
-const 표시_상한 = 200;
+const 표시_상한 = 90;
 
 const 권역_선택지 = [
   { 값: "서울", 라벨: "서울" },
@@ -185,32 +235,27 @@ export default async function 단지추천_페이지({
     .map((s) => s.trim())
     .filter((s) => s && s !== "전체" && /^\d+$/.test(s));
 
-  const 단지들 = await 캐시_추천({
-      시도_코드_목록,
-      시군구_코드_목록:
-        시군구_필터_표시 && 선택_시군구_코드들.length > 0
-          ? 선택_시군구_코드들
-          : undefined,
-      물건_유형들: 물건_코드(물건),
-      카테고리,
-      면적_최소_제곱미터: 면적_범위.최소,
-      면적_최대_제곱미터: 면적_범위.최대,
-      건축_연도_최소: 연식_범위.건축_연도_최소,
-      건축_연도_최대: 연식_범위.건축_연도_최대,
-      기간_개월,
-      예산_하한_만원: 예산_범위.최소,
-      예산_상한_만원: 예산_범위.최대,
-      정렬: 정렬값,
-      거래량_기준,
-      단지분류_그룹: 분류값 !== "전체" ? 분류값 : undefined,
-      세대수_규모:
-        규모값 !== "전체" ? (규모값 as "대" | "중" | "소") : undefined,
-      최대: 표시_상한 + 1, // +1 로 상한 초과(잘림) 여부를 판별
-    })
-    .catch(() => []);
-
-  const 잘림 = 단지들.length > 표시_상한;
-  const 표시_목록 = 단지들.slice(0, 표시_상한);
+  const 옵션객체: 단지_추천_옵션 = {
+    시도_코드_목록,
+    시군구_코드_목록:
+      시군구_필터_표시 && 선택_시군구_코드들.length > 0
+        ? 선택_시군구_코드들
+        : undefined,
+    물건_유형들: 물건_코드(물건),
+    카테고리,
+    면적_최소_제곱미터: 면적_범위.최소,
+    면적_최대_제곱미터: 면적_범위.최대,
+    건축_연도_최소: 연식_범위.건축_연도_최소,
+    건축_연도_최대: 연식_범위.건축_연도_최대,
+    기간_개월,
+    예산_하한_만원: 예산_범위.최소,
+    예산_상한_만원: 예산_범위.최대,
+    정렬: 정렬값,
+    거래량_기준,
+    단지분류_그룹: 분류값 !== "전체" ? 분류값 : undefined,
+    세대수_규모: 규모값 !== "전체" ? (규모값 as "대" | "중" | "소") : undefined,
+    최대: 표시_상한 + 1, // +1 로 상한 초과(잘림) 여부 판별
+  };
 
   const 최소_거래 =
     기간_개월 <= 1 ? 1 :
@@ -259,10 +304,6 @@ export default async function 단지추천_페이지({
             <div className="flex items-baseline gap-3 text-[12px] text-[var(--color-ink-3)] font-medium">
               <span className="num font-bold text-[var(--color-ink-2)]">
                 {데이터_기간.시작} ~ {데이터_기간.종료}
-              </span>
-              <span>·</span>
-              <span>
-                {표시_목록.length.toLocaleString("ko-KR")}개{잘림 ? "+" : ""} · 최소 거래 {최소_거래}건
               </span>
             </div>
           </div>
@@ -406,22 +447,13 @@ export default async function 단지추천_페이지({
         </div>
       </div>
 
-      <section className="mx-auto w-full px-6 py-4">
-        {표시_목록.length === 0 ? (
-          <div className="toss-card p-12 text-center text-[var(--color-ink-3)]">
-            조건에 맞는 단지가 없습니다. 필터를 완화해보세요.
-          </div>
-        ) : (
-          <div className="toss-card overflow-hidden">
-            <단지_추천_헤더 />
-            <단지_추천_리스트
-              key={JSON.stringify(p)}
-              행들={표시_목록}
-              잘림={잘림}
-            />
-          </div>
-        )}
-      </section>
+      <Suspense fallback={<리스트_스켈레톤 />}>
+        <추천_결과
+          옵션={옵션객체}
+          최소_거래={최소_거래}
+          목록키={JSON.stringify(p)}
+        />
+      </Suspense>
     </>
   );
 }
