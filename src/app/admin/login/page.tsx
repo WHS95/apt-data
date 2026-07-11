@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { 관리자_인증됨 } from "../../../infrastructure/관리자_인증";
-import { 로그인_처리 } from "../인증_액션";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +19,7 @@ export default async function 관리자_로그인_페이지({
       <p className="mb-6 text-[13px] text-[var(--color-ink-3)]">
         APT DATA 관리자 영역입니다.
       </p>
-      <form action={로그인_처리} className="flex flex-col gap-3">
+      <form action="/api/auth/login" method="post" className="flex flex-col gap-3">
         <input
           type="password"
           name="password"

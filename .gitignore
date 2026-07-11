@@ -37,3 +37,4 @@ skills-lock.json
 # 로컬 전용 — 공개 저장소 제외(전략문서·MCP 설정)
 참고자료/
 .mcp.json
+.vercel

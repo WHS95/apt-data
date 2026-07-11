@@ -5,7 +5,6 @@ import { 페이지_제목 } from "../../presentation/components/페이지_제목
 import { 관리자_상태패널 } from "../../presentation/components/관리자_상태패널";
 import { redirect } from "next/navigation";
 import { 관리자_인증됨 } from "../../infrastructure/관리자_인증";
-import { 로그아웃 } from "./인증_액션";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +30,7 @@ export default async function 관리자_페이지() {
           <Link href="/admin" className="pill pill-active">현황 / 설정</Link>
           <Link href="/admin/raw" className="pill">로우 데이터</Link>
           <Link href="/admin/cards" className="pill">카드 스튜디오</Link>
-          <form action={로그아웃} className="ml-auto">
+          <form action="/api/auth/logout" method="post" className="ml-auto">
             <button type="submit" className="pill">로그아웃</button>
           </form>
         </div>
